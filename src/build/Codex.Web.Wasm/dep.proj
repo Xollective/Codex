@@ -1,5 +1,0 @@
-<Project Sdk="Microsoft.Build.NoTargets/3.7.56">
-  <ItemGroup>
-    <CodexReference Include="$([System.IO.Path]::GetFileName($(MSBuildThisFileDirectory)))" />
-  </ItemGroup>
-</Project>

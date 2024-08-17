@@ -1,6 +1,0 @@
-<Project>
-  <Import Condition="Exists('$(MSBuildThisFileDirectory)\..\Directory.Build.props')" Project="$(MSBuildThisFileDirectory)\..\Directory.Build.props" />
-  <PropertyGroup>
-    <TargetFramework>$(ZoneTreeTargetFramework)</TargetFramework>
-  </PropertyGroup>
-</Project>
