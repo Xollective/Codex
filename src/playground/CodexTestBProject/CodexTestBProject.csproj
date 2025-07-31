@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <ProvideCommandLineArgs>true</ProvideCommandLineArgs>
+  </PropertyGroup>
+
+  <Target Name="WriteCscArgs" AfterTargets="CoreCompile" Condition="@(CscCommandLineArgs->Count()) != 0">
+    <WriteLinesToFile Lines="@(CscCommandLineArgs)" File="$(MSBuildThisFileDirectory)\csc.args.txt" Overwrite="true" WriteOnlyWhenDifferent="True" />
+  </Target>
+
+  <ItemGroup>
+    <CodexReference Include="CodexTestProject" />
+  </ItemGroup>
+
+</Project>

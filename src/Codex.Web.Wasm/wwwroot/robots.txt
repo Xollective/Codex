@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /  # Disallow crawling all pages by default
+Allow: /index.html    # Allow crawling the home page

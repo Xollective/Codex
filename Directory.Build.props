@@ -1,0 +1,27 @@
+<Project>
+
+  <PropertyGroup>
+    <CommonTargetFramework>net8.0</CommonTargetFramework>
+    <ZoneTreeTargetFramework>$(CommonTargetFramework)</ZoneTreeTargetFramework>
+    <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
+    <PackagesOutputPath Condition="'$(PackagesOutputPath)' == ''">$(RepoRoot)/deps/packages</PackagesOutputPath>
+    <UserSecretsId>CodexTests-5405dcff-71b8-4108-918a-458206700d15</UserSecretsId>
+    
+    <!--<RestoreAdditionalProjectSources>$(PackagesOutputPath)</RestoreAdditionalProjectSources>-->
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(ProjectGuid)' == ''">
+    <__StableNameHash>$([MSBuild]::StableStringHash($(MSBuildProjectName), 'Fnv1a64bit').ToString('x16'))</__StableNameHash>
+    <ProjectGuid>$([System.Guid]::ParseExact('$(__StableNameHash)$(__StableNameHash)', 'N'))</ProjectGuid>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(DisableWorkloads)' == ''">
+    <!-- By default disable workloads -->
+    <!--<DisableWorkloads>true</DisableWorkloads>-->
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(DisableWorkloads)' == 'true'">
+    <MSBuildEnableWorkloadResolver>false</MSBuildEnableWorkloadResolver>
+  </PropertyGroup>
+
+</Project>

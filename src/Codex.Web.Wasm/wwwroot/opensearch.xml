@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<OpenSearchDescription xmlns="http://a9.com/-/spec/opensearch/1.1/">
+	<ShortName>Ref12</ShortName>
+	<Image height="256" width="256" type="image/vnd.microsoft.icon">https://ref12.io/favicon.ico</Image>
+	<Url type="text/html" template="https://ref12.io/?query={searchTerms}"></Url>
+</OpenSearchDescription>

@@ -1,0 +1,19 @@
+<Project>
+    <ItemGroup>
+        <DesignTimeProperty Include="BuildingInsideVisualStudio" Value="true" />
+        <DesignTimeProperty Include="DefineExplicitDefaults" Value="true" />
+        <DesignTimeProperty Include="LangName" Value="en-US" />
+        <DesignTimeProperty Include="LangID" Value="1033" />
+
+        <DesignTimeProperty Include="DesignTimeBuild" Value="true" />
+        <DesignTimeProperty Include="SkipCompilerExecution" Value="true" />
+        <DesignTimeProperty Include="ProvideCommandLineArgs" Value="true" />
+        <DesignTimeProperty Include="DesignTimeSilentResolution" Value="true" />
+        <DesignTimeProperty Include="ResolveAssemblyReferencesSilent" Value="true" />
+        <DesignTimeProperty Include="ContinueOnError" Value="true" />
+    </ItemGroup>
+
+    <Target Name="Build">
+
+    </Target>
+</Project>

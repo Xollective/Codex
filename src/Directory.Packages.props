@@ -1,0 +1,139 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally Condition="'$(ManagePackageVersionsCentrally)' == ''">false</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled  Condition="'$(ManagePackageVersionsCentrally)' == 'true'">true</CentralPackageTransitivePinningEnabled>
+    <RoslynPackageVersion>4.12.0</RoslynPackageVersion>
+    <MSBuildPackageVersion>17.8.29</MSBuildPackageVersion>
+    <AvaloniaVersion>11.0.0</AvaloniaVersion>
+    <AvaloniaEditVersion>11.0.0</AvaloniaEditVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="Avalonia" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Browser" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.AvaloniaEdit" Version="$(AvaloniaEditVersion)" />
+    <PackageVersion Include="Avalonia.Desktop" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Diagnostics" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Fonts.Inter" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.ReactiveUI" Version="$(AvaloniaVersion)" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="$(AvaloniaVersion)" />
+
+    <PackageVersion Include="Azure.Data.Tables" Version="12.8.1" />
+    <PackageVersion Include="Azure.Identity" Version="1.11.4" />
+    <PackageVersion Include="Azure.Security.KeyVault.Secrets" Version="4.7.0" />
+    <PackageVersion Include="Azure.Storage.Blobs" Version="12.16.0" />
+    <PackageVersion Include="Azure.Storage.Files.DataLake" Version="12.16.0" />
+    <PackageVersion Include="Azure.Storage.Files.Shares" Version="12.16.0" />
+
+    <PackageVersion Include="Basic.CompilerLog.Util" Version="0.2.6" />
+    <PackageVersion Include="CommandLineParser" Version="2.9.1" />
+    <PackageVersion Include="CommunityToolkit.HighPerformance" Version="8.4.0" />
+
+    <PackageVersion Include="DotNext" Version="4.12.0" />
+    <PackageVersion Include="DotNext.IO" Version="4.12.0" />
+    <PackageVersion Include="DotNext.Threading" Version="4.12.0" />
+    <PackageVersion Include="DotNext.Unsafe" Version="4.12.0" />
+
+    <PackageVersion Include="FluentAssertions" Version="6.11.0" />
+
+    <PackageVersion Include="Google.Apis.Auth" Version="1.62.0" />
+    <PackageVersion Include="Google.Apis.Gmail.v1" Version="1.62.0.3175" />
+
+    <PackageVersion Include="GuiLabs.Language.Xml" Version="1.2.60" />
+
+    <PackageVersion Include="ICSharpCode.Decompiler" Version="8.0.0.7339-rc1" />
+
+    <PackageVersion Include="IgnoresAccessChecksToGenerator" Version="0.7.0" />
+
+    <PackageVersion Include="K4os.Compression.LZ4" Version="1.3.6" />
+    <PackageVersion Include="K4os.Compression.LZ4.Streams" Version="1.3.6" />
+
+    <PackageVersion Include="LibGit2Sharp" Version="0.26.2" />
+    <PackageVersion Include="LibGit2Sharp.NativeBinaries" Version="2.0.306" />
+
+    <PackageVersion Include="MessagePack.Annotations" Version="2.5.108" />
+    <PackageVersion Include="Ref12.MessagePack" Version="2.5.108-gcb0ad5dd95" />
+
+    <PackageVersion Include="Microsoft.AspNetCore.Cors" Version="2.2.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Components.WebView.Wpf" Version="7.0.86" />
+    <PackageVersion Include="Microsoft.Azure.Storage.File" Version="11.2.3" />
+    
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker" Version="2.0.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Extensions.Http" Version="3.3.0" />
+    <PackageVersion Include="Microsoft.Azure.Functions.Worker.Sdk" Version="2.0.5" />
+
+    <PackageVersion Include="Microsoft.Build" Version="$(MSBuildPackageVersion)" />
+    <PackageVersion Include="Microsoft.Build.Framework" Version="$(MSBuildPackageVersion)" />
+    <PackageVersion Include="Microsoft.Build.Locator" Version="1.5.5" />
+    <PackageVersion Include="Microsoft.Build.Tasks.Core" Version="$(MSBuildPackageVersion)" />
+    <PackageVersion Include="Microsoft.Build.Utilities.Core" Version="$(MSBuildPackageVersion)" />
+
+    <PackageVersion Include="Microsoft.CodeAnalysis" Version="$(RoslynPackageVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="$(RoslynPackageVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="$(RoslynPackageVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Features" Version="$(RoslynPackageVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="$(RoslynPackageVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Features" Version="$(RoslynPackageVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.VisualBasic" Version="$(RoslynPackageVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.VisualBasic.Features" Version="$(RoslynPackageVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.VisualBasic.Workspaces" Version="$(RoslynPackageVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="$(RoslynPackageVersion)" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" Version="$(RoslynPackageVersion)" />
+
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="9.0.7" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.CommandLine" Version="9.0.7" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.7" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.AzureAppServices" Version="9.0.7" />
+
+    <PackageVersion Include="Microsoft.FASTER.Core" Version="2.6.5" />
+
+    <PackageVersion Include="Microsoft.NET.WebAssembly.Threading" Version="7.0.0" Condition="'$(TargetFramework)' == 'net7.0'" />
+    <PackageVersion Include="Microsoft.NET.WebAssembly.Threading" Version="8.0.0" Condition="'$(TargetFramework)' == 'net8.0'" />
+    <PackageVersion Include="Microsoft.NET.WebAssembly.Threading" Version="9.0.7" Condition="'$(TargetFramework)' == 'net9.0'" />
+
+    <PackageVersion Include="Microsoft.TeamFoundationServer.Client" Version="19.225.1" />
+
+    <PackageVersion Include="MailKit" Version="4.2.0" />
+    <PackageVersion Include="MimeKitLite" Version="4.2.0" />
+
+    <PackageVersion Include="Mono.Cecil" Version="0.11.4" />
+    <PackageVersion Include="Mono.Options" Version="6.12.0.148" />
+
+    <PackageVersion Include="MSBuild.StructuredLogger" Version="2.2.206" />
+
+    <PackageVersion Include="Nerdbank.Streams" Version="2.10.72" />
+    <PackageVersion Include="Newtonsoft.Json" Version="13.0.2" />
+
+    <PackageVersion Include="Octokit" Version="7.1.0" />
+    <PackageVersion Include="Octokit.GraphQL" Version="0.2.1-beta" />
+    <PackageVersion Include="Octokit.Webhooks" Version="2.0.1" />
+
+    <PackageVersion Include="Ref12.Azurite.Executables.Blob.Win" Version="1.0.0-CI-20240607-000006" />
+    <PackageVersion Include="Ref12.RocksDbNative" Version="7.7.3-20230326.1" />
+    <PackageVersion Include="Ref12.RocksDbSharp" Version="7.7.3-20230326.1" />
+
+    <PackageVersion Include="RuntimeContracts" Version="0.4.0" />
+
+    <PackageVersion Include="SharpZipLib" Version="1.4.2" />
+
+    <PackageVersion Include="System.Collections.Immutable" Version="8.0.0" />
+    <PackageVersion Include="System.IO.Pipelines" Version="9.0.7" />
+    <PackageVersion Include="System.Linq.Async" Version="6.0.1" />
+    <PackageVersion Include="System.Management.Automation" Version="7.3.12" />
+    <PackageVersion Include="System.Memory" Version="4.5.5" />
+    <PackageVersion Include="System.Text.Json" Version="9.0.7" />
+    <PackageVersion Include="WindowsAzure.Storage" Version="9.3.3" />
+    <PackageVersion Include="ZoneTree" Version="1.6.0-r1" />
+
+    <PackageVersion Include="Meziantou.Framework.CodeDom" Version="4.0.6" />
+    <PackageVersion Include="RazorEngineCore" Version="2022.8.1" />
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.3.2" />
+    <PackageVersion Include="xunit" Version="2.4.2" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="2.4.5" />
+    <PackageVersion Include="coverlet.collector" Version="3.1.2" />
+    <PackageVersion Include="NuGet.Versioning" Version="6.14.0" />
+    <PackageVersion Include="DictionaryLib_Calvin_Hsia" Version="1.0.7" />
+    <PackageVersion Include="Azure.Extensions.AspNetCore.Configuration.Secrets" />
+  </ItemGroup>
+</Project>

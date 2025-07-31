@@ -1,0 +1,120 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" TreatAsLocalProperty="RunCodex">
+
+  <!-- The purpose of these targets is to extract CSC/VBC command line args for use by Codex -->
+  <!--
+    Instructions for extraction:
+    Run MSBuild so that these targets are included. This can be done by providing these targets as extension imports
+    via the following properties (environment or global)
+    
+    NOTE: Certain codebases may rely on any (maybe all) of these values being set to
+    custom values. In those cases, these targets will need to be included via another
+    import extension point. As a last resort, MSBuild workspace can be used
+  
+    Optimization Note: 
+    SkipCompilerExecution=true can be specified if successful build was already done to bypass
+    compiler invocations
+  
+    Inputs:
+    $(CodexCommonArgs) - [Required, Non-legacy mode only] the executable and common args for invoking codex in proejct data mode
+    $(CodexRepoRoot) - [Required, Legacy only] the location of the root of the repository
+    $(CodexAdditionalArguments) - [Optional, Legacy mode only] Additional arguments to pass to Codex.exe (e.g. -disableParallelFiles)
+
+    $(CodexProjectExtractionRoot) - [Optional] extraction root
+    $(CodexAdditionalArguments) - [Optional] Additional arguments to pass to Codex.exe (e.g. -disableParallelFiles)
+    $(RunCodex) - [Optional, Default=true]  specifies whether to run Codex.exe on extracted command line arguments
+
+    Ambient Inputs:
+    $(OutDir)
+    $(TargetName) - the location of the output assembly of the compiler. Extraction directory is $(OutDir)\$(TargetName).cdx
+    @(IntermediateAssembly) - the location of the intermediate output assembly
+  
+    Common:
+    set CustomBeforeMicrosoftCommonTargets=
+    set CustomAfterMicrosoftCommonTargets=
+    
+    VB Only:
+    set CustomAfterMicrosoftVisualBasicTargets=
+    
+    CSharp Only:
+    set CustomAfterMicrosoftCSharpTargets=
+  
+    TODO: There are likely more extension points to use. Add here for convenience.
+    TODO: Add logger which accomplishes the same goal
+  -->
+
+  <PropertyGroup>
+    <!-- Ensure compiler provides command line args -->
+    <ProvideCommandLineArgs>true</ProvideCommandLineArgs>
+    <RunCodex Condition="'$(RunCodex)' == '' AND '$(CodexCommonArgs)' != ''">true</RunCodex>
+
+    <!-- Disable codex if CodexCommonArgs not specified  -->
+    <RunCodex Condition="'$(CodexCommonArgs)' == '' AND '$(CodexRepoRoot)' == ''">false</RunCodex>
+
+        <!-- Generate a GUID -->
+    <CodexGuid>$([System.Guid]::NewGuid())</CodexGuid>
+    <!-- Truncate the GUID to the first 8 characters -->
+    <CodexGuid>$(CodexGuid.Substring(0, 8))</CodexGuid>
+
+    <!-- Force CoreCompile to execute (this file is declared as an output to core compile
+         for use of forcing the MSBuild up to date check to force core compile to run)-->
+    <!--<NonExistentFile Condition="'$(DisableForceExtractionCoreCompile)' != 'true'">__NonExistentSubDir__\__NonExistentFile__</NonExistentFile>-->
+  </PropertyGroup>
+
+  <Target Name="ComputeCodexExtractionRoot" BeforeTargets="BeforeCompile">
+    <PropertyGroup>
+      <_CodexTargetFingerprint>$(_CodexTargetFingerprint)|@(IntermediateAssembly)|$(OutDir)\$(TargetName)</_CodexTargetFingerprint>
+      <_CodexTargetFingerprint>$(_CodexTargetFingerprint.GetHashCode().ToString('X'))</_CodexTargetFingerprint>
+      <_CodexTargetFingerprint Condition="'$(UseCodexGuid)' != 'false'">$(_CodexTargetFingerprint)_$(CodexGuid)</_CodexTargetFingerprint>
+      <CodexProjectExtractionDirectory Condition="'$(CodexProjectExtractionDirectory)' == '' AND '$(CodexProjectExtractionRoot)' != ''">$(CodexProjectExtractionRoot)\pdata\$(TargetName).$(_CodexTargetFingerprint)</CodexProjectExtractionDirectory>
+      <CodexProjectExtractionDirectory Condition="'$(CodexProjectExtractionDirectory)' == ''">$(OutDir)\$(TargetName).cdx</CodexProjectExtractionDirectory>
+      <CodexCompilerArgumentsFile Condition="'$(Language)' == 'C#'">$(CodexProjectExtractionDirectory)\csc.args.txt</CodexCompilerArgumentsFile>
+      <CodexCompilerArgumentsFile Condition="'$(Language)' == 'VB'">$(CodexProjectExtractionDirectory)\vbc.args.txt</CodexCompilerArgumentsFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <CustomAdditionalCompileOutputs Condition="'$(CodexCompilerArgumentsFile)' != ''" Include="$(CodexCompilerArgumentsFile)" />
+    </ItemGroup>
+  </Target>
+
+  <Target Name="ExtractCommandLineArgs"
+          AfterTargets="CoreCompile"
+          Condition="'$(CodexCompilerArgumentsFile)' != ''">
+
+    <ItemGroup>
+      <CodexProjectData Include="Project=$(MSBuildProjectFullPath)" />
+    </ItemGroup>
+
+    <MakeDir Directories="$(CodexProjectExtractionDirectory)" />
+
+    <WriteLinesToFile Condition="'@(CscCommandLineArgs->Count())' != '0'"
+                      Lines="@(CodexProjectData);@(CscCommandLineArgs)"
+                      File="$(CodexCompilerArgumentsFile)"
+                      Overwrite="true" 
+                      WriteOnlyWhenDifferent="True" />
+
+    <WriteLinesToFile Condition="'@(VbcCommandLineArgs->Count())' != '0'"
+                      Lines="@(CodexProjectData);@(VbcCommandLineArgs)"
+                      File="$(CodexCompilerArgumentsFile)"
+                      Overwrite="true" 
+                      WriteOnlyWhenDifferent="True" />
+  </Target>
+
+  <Target Name="RunCodex" AfterTargets="ExtractCommandLineArgs" Condition="'$(CodexCompilerArgumentsFile)' != '' AND Exists('$(CodexCompilerArgumentsFile)') AND '$(RunCodex)' == 'true'">
+    <PropertyGroup Condition="'$(CodexCommonArgs)' == ''">
+      <CodexExePath Condition="'$(CodexExePath)' == ''">$(MSBuildThisFileDirectory)Codex.exe</CodexExePath>
+      <CodexRepoName Condition="'$(CodexRepoName)' == ''">$(MSBuildProjectName)</CodexRepoName>
+      <CodexRepoRoot Condition="'$(CodexRepoRoot)' == ''">$(MSBuildProjectFullPath)</CodexRepoRoot>
+
+      <_RunCodexArgs>$(CodexExePath) index -save "$(CodexProjectExtractionRoot)\store" -projectMode -projectDataSuffix $(_CodexTargetFingerprint) -ca "$(CodexCompilerArgumentsFile)" -p "$(CodexRepoRoot)" -n "$(CodexRepoName)" $(CodexAdditionalArguments)</_RunCodexArgs>
+    </PropertyGroup>
+    
+    
+    <PropertyGroup Condition="'$(CodexCommonArgs)' != ''">
+      <_RunCodexArgs>$(CodexCommonArgs) --project "$(MSBuildProjectFullPath)" --projectDataSuffix $(_CodexTargetFingerprint) -c "$(CodexCompilerArgumentsFile)"</_RunCodexArgs>
+    </PropertyGroup>
+
+
+    <Exec Command="$(_RunCodexArgs)" ContinueOnError="WarnAndContinue" />
+  </Target>
+
+</Project>

@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <CodexReference Include="Codex.Analysis" />
+    <CodexReference Include="Codex.ObjectModel" />
+    <CodexReference Include="Codex.Sdk" />
+    <CodexReference Include="Perspectil" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Codex.Managed.Extractor.targets" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsAssemblyName Include="Microsoft.CodeAnalysis" />
+    <InternalsAssemblyName Include="Microsoft.CodeAnalysis.Features" />
+    <InternalsAssemblyName Include="Microsoft.CodeAnalysis.Workspaces"/>
+    <InternalsAssemblyName Include="Microsoft.CodeAnalysis.CSharp.Features"/>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Basic.CompilerLog.Util" />
+
+    <PackageReference Include="ICSharpCode.Decompiler" />
+
+    <PackageReference Include="IgnoresAccessChecksToGenerator" PrivateAssets="all" />
+
+    <PackageReference Include="Microsoft.CodeAnalysis" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.CodeAnalysis.Common" Aliases="global,msca" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Features" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Features" />
+    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic" />
+    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.Features" />
+    <PackageReference Include="Microsoft.CodeAnalysis.VisualBasic.Workspaces" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" />
+
+    <PackageReference Include="GuiLabs.Language.Xml" />
+
+    <PackageReference Include="MSBuild.StructuredLogger" />
+    <PackageReference Include="Microsoft.Build" />
+    <PackageReference Include="Microsoft.Build.Framework" />
+    <PackageReference Include="Microsoft.Build.Tasks.Core" />
+    <PackageReference Include="Microsoft.Build.Utilities.Core" />
+  </ItemGroup>
+</Project>

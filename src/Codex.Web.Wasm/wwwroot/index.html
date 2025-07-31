@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<!--  Licensed to the .NET Foundation under one or more agreements. -->
+<!-- The .NET Foundation licenses this file to you under the MIT license. -->
+<html>
+
+<head>
+  <title>Ref12</title>
+
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-SDV6V82S4J" onerror="return false;"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+
+    gtag('config', 'G-SDV6V82S4J');
+  </script>
+
+  <script>
+    //  handle SPA routing
+    const redirected = sessionStorage.getItem('spa-redirect');
+    if (redirected) {
+      sessionStorage.removeItem('spa-redirect');
+
+      // Restore the original URL without reloading the page
+      history.replaceState(null, '', redirected);
+
+      console.log('Restored SPA route:', redirected);
+    }
+  </script>
+  
+  <script async src="serviceworker.boot.js" onerror="return false;"></script>
+
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+
+  <link rel="icon" href="content/images/icon16.png" type="image/png" />
+  <link href="/css/bootstrap/bootstrap.min.css" rel="stylesheet" />
+
+  <link href="/css/app.css" rel="stylesheet" />
+
+  <link href="content/body.css" rel="stylesheet" />
+  <link href="content/results.css" rel="stylesheet" />
+  <link href="content/styles.css" rel="stylesheet" />
+  <link href="content/header.css" rel="stylesheet" />
+  <link href="content/dark.css" rel="stylesheet" media="(prefers-color-scheme: dark)" />
+</head>
+
+
+<body onload="onBodyLoad();">
+    <div class="header">
+        <span id="searchBoxAndImages">
+            <input type="search"
+                    name="name"
+                    maxlength="260"
+                    id="search-box"
+                    value=""
+                    tabindex="1"
+                    aria-label="search"
+                    disabled />
+            <a id="logoText" href="?rightMode=overview" onclick="CxNav(this);return false;" ><img src="content/images/logo-white-no-background.svg" /></a>
+            <span id="headerMenu">
+                <a id="sponsorButtonLink" target="_blank" href="#sponsorSection" onclick="CxNav(this);return false;"><img src="content/images/sponsor.svg" /></a>
+                <a id="helpButtonLink" class="headerText" target="_blank" href="https://github.com/Ref12/Home">Help</a>
+            </span>
+        </span>
+    </div>
+
+    <div id="main">
+        <div id="leftPane">
+            <div id="leftPaneContent">
+            </div>
+        </div>
+
+        <div id="rightPane">
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script type="text/javascript" src="bundles/modernizr.js"></script>
+    <script type="text/javascript" src="bundles/header.js"></script>
+    <script src="ts/js/ipc.js"></script>
+    <script src="ts/js/definitions.js"></script>
+    <script src="ts/js/page.main.js"></script>
+
+    <script type='module' src="./main.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk.WebAssembly">
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <WasmEnableThreads>true</WasmEnableThreads>
+    <PublishTrimmed>false</PublishTrimmed>
+    <WasmEnableDebugging>true</WasmEnableDebugging>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CodexReference Include="Codex.ObjectModel" />
+    <CodexReference Include="Codex.Sdk" />
+    <CodexReference Include="Codex.Lucene" />
+    <CodexReference Include="Codex.Web.Common" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.WebAssembly.Threading" Version="8.0.0" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>Codex</AssemblyName>
+
+    <PackageId>Ref12.Tool.Codex</PackageId>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>codex</ToolCommandName>
+    <PackageOutputPath>./nupkg</PackageOutputPath>
+    <PackageVersion>2.0.0</PackageVersion>
+
+    <UserSecretsId>CodexTests-5405dcff-71b8-4108-918a-458206700d15</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Codex.ObjectModel\Codex.ObjectModel.csproj" />
+    <ProjectReference Include="..\Codex.Sdk\Codex.Sdk.csproj" />
+    <ProjectReference Include="..\Codex.Lucene\Codex.Lucene.csproj" />
+    <ProjectReference Include="..\Codex.Storage\Codex.Storage.csproj" />
+    <ProjectReference Include="..\Codex.Analysis\Codex.Analysis.csproj" />
+    <ProjectReference Include="..\Codex.Analysis.Managed\Codex.Analysis.Managed.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommandLineParser" />
+    <PackageReference Include="LibGit2Sharp" />
+    <PackageReference Include="LibGit2Sharp.NativeBinaries" />
+    <PackageReference Include="Microsoft.Build.Locator" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
+
+    <PackageReference Include="Mono.Options"/>
+  </ItemGroup>
+
+</Project>

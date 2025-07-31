@@ -1,0 +1,84 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements.  See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership.  The ASF licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License.  You may obtain a copy of the License at
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied.  See the License for the
+ specific language governing permissions and limitations
+ under the License.
+
+-->
+
+<Project>
+
+  <PropertyGroup>
+    <!-- Changing this setting will allow testing on all target frameworks within Visual Studio 2019.
+    Note that the main libraries are multi-targeted, so this has no effect on how they are compiled,
+    this setting only affects the test projects. -->
+    <!--<TargetFramework>net461</TargetFramework>-->
+    <!--<TargetFramework>net48</TargetFramework>-->
+    <!--<TargetFramework>net5.0</TargetFramework>-->
+    <!--<TargetFramework>net6.0</TargetFramework>-->
+    <TargetFramework>net7.0</TargetFramework>
+
+    <!-- Allow the build script to pass in the test frameworks to build for.
+      This overrides the above TargetFramework setting. 
+      LUCENENET TODO: Due to a parsing bug, we cannot pass a string with a ; to dotnet msbuild, so passing true as a workaround -->
+    <TargetFrameworks Condition=" '$(TestFrameworks)' == 'true' ">net7.0;net6.0;net5.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$(TestFrameworks)' == 'true' AND $([MSBuild]::IsOsPlatform('Windows')) ">$(TargetFrameworks);net48;net461</TargetFrameworks>
+    <TargetFramework Condition=" '$(TargetFrameworks)' != '' "></TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Mismatched Target Framework (to override the target framework under test)">
+    <SetTargetFramework></SetTargetFramework>
+    <SetTargetFramework Condition=" '$(TargetFramework)' == 'net461' ">TargetFramework=netstandard2.0</SetTargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Assembly Publishing">
+    <IsPublishable>true</IsPublishable>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Test Settings">
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Warnings to be Disabled in Test Projects">
+    <!-- We purposely test on EoL frameworks for testing netstandard2.1, but we want to keep this warning in production code. -->
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+    
+    <NoWarn Label="Nested types should not be visible">$(NoWarn);CA1034</NoWarn>
+    <NoWarn Label="Use Literals Where Appropriate">$(NoWarn);CA1802</NoWarn>
+    <NoWarn Label="Do not ignore method results">$(NoWarn);CA1806</NoWarn>
+    <NoWarn Label="Add readonly modifier">$(NoWarn);CA1822</NoWarn>
+    <NoWarn Label="Avoid zero-length array allocations">$(NoWarn);CA1825</NoWarn>
+    <NoWarn Label="Do not raise exceptions in exception clauses">$(NoWarn);CA2219</NoWarn>
+
+    <NoWarn Label="Use object initializers">$(NoWarn);IDE0017</NoWarn>
+    <NoWarn Label="Use pattern matching">$(NoWarn);IDE0019;IDE0020;IDE0038</NoWarn>
+    <NoWarn Label="Use collection initializers">$(NoWarn);IDE0028</NoWarn>
+    <NoWarn Label="Use null propagation">$(NoWarn);IDE0031</NoWarn>
+    <NoWarn Label="Add accessibility modifiers">$(NoWarn);IDE0040</NoWarn>
+    <NoWarn Label="Add readonly modifier">$(NoWarn);IDE0044</NoWarn>
+    <NoWarn Label="Use language keywords">$(NoWarn);IDE0049</NoWarn>
+    <NoWarn Label="Remove unused private member">$(NoWarn);IDE0051</NoWarn>
+    <NoWarn Label="Remove unread private member">$(NoWarn);IDE0052</NoWarn>
+    <NoWarn Label="Remove unnecessary value assignment">$(NoWarn);IDE0059</NoWarn>
+    <NoWarn Label="Remove unused parameter">$(NoWarn);IDE0060</NoWarn>
+    <NoWarn Label="Naming rule violation">$(NoWarn);IDE1006</NoWarn>
+
+    <!-- SonarCloud issues -->
+    <NoWarn Label="Add at least one assertion to this test case">$(NoWarn);S2699</NoWarn>
+  </PropertyGroup>
+  
+</Project>

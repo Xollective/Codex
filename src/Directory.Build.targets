@@ -1,0 +1,80 @@
+<Project>
+  <PropertyGroup>
+    <RoslynPackageVersion>4.12.0</RoslynPackageVersion>
+    <MSBuildPackageVersion>17.8.29</MSBuildPackageVersion>
+    <AvaloniaVersion>11.0.0</AvaloniaVersion>
+    <AvaloniaEditVersion>11.0.0</AvaloniaEditVersion>
+    <DefineConstants>$(DefineConstants);CONTRACTS_LIGHT_ASSERTS</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <!-- Allow all projects -->
+    <ProjectFilterLocal Condition="'$(ProjectFilterLocal)' == ''">Identity</ProjectFilterLocal>
+    <ValidateExecutableReferencesMatchSelfContained>false</ValidateExecutableReferencesMatchSelfContained>
+  </PropertyGroup>
+  
+  <ItemGroup Condition="'$(Language)' == 'C#'">
+    <Compile Include=".gen\*.cs" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(Language)' == 'C#'">
+    <DefineConstants Condition="'$(IsLocalDebug)' == 'true'">$(DefineConstants);DEBUG_LOCAL</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(DisableWorkloads)' == 'true'">
+    <MissingWorkloadPack Remove="@(MissingWorkloadPack)"/>
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' != 'true'">
+    <PackageReference Update="@(PackageVersion)" Version="%(PackageVersion.Version)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <DotNetCliToolReference Update="Microsoft.Extensions.SecretManager.Tools" Version="2.0.2" />
+  </ItemGroup>
+
+  <ItemDefinitionGroup>
+    <CodexReference SourceRelativeRoot="\" ProjectExtension="csproj" />
+    <ProjectReference AdditionalProperties="%(AdditionalProperties);LuceneRepoRoot=$(LuceneRepoRoot);SolutionDir=$(LuceneRepoRoot)\" />
+  </ItemDefinitionGroup>
+
+  <ItemDefinitionGroup>
+    <ContentReference 
+      SourceRelativeRoot="\"
+      SkipGetTargetFrameworkProperties="true"
+      CopyToOutputDirectory="PreserveNewest"
+      ReferenceOutputAssembly="false" />
+  </ItemDefinitionGroup>
+
+  <PropertyGroup>
+    <LuceneRepoRoot Condition="'$(LuceneRepoRoot)' == ''" >$(RepoRoot)\lucenenet</LuceneRepoRoot>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <CodexReference Update="CodexTestProject" SourceRelativeRoot="\playground" />
+    <CodexReference Update="CodexTestBProject" SourceRelativeRoot="\playground" />
+    <CodexReference Update="VBCodexTestProject" SourceRelativeRoot="\playground" ProjectExtension="vbproj" />
+
+
+    <_AllProjects Include="@(CodexDependency ->'$(RepoRoot)\src\build\%(Identity)\dep.proj')" ReferenceOutputAssembly="false" />
+    <_AllProjects Include="@(ContentReference ->'$(RepoRoot)\src\%(SourceRelativeRoot)\%(Identity)\%(Identity).contentprj')" />
+    <_AllProjects Include="@(CodexReference ->'$(RepoRoot)\src\%(SourceRelativeRoot)\%(Identity)\%(Identity).%(ProjectExtension)')" />
+    <_AllProjects Include="@(LuceneReference ->'$(LuceneRepoRoot)\src\%(Identity)\%(Identity).csproj')" />
+    <_AllProjects Include="@(ZoneTreeReference ->'$(RepoRoot)\zonetree\src\%(Identity)\%(Identity).csproj')" />
+
+    <ProjectReference Include="@(_AllProjects->HasMetadata($(ProjectFilterLocal))->Exists())" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <_AnnotatedPackageReference Include="@(PackageReference)" OriginatingPackageReference="%(Identity)" />
+
+    <_OverriddenPackageReference Include="@(_AnnotatedPackageReference->HasMetadata('ReferenceOverride')->'$(RepoRoot)\lib\%(ReferenceOverride)')" />
+
+    <_OverriddenPackageReferenceExistent Include="@(_OverriddenPackageReference->Exists())" />
+    <_RemovedPackageReference Include="@(_OverriddenPackageReferenceExistent->'%(OriginatingPackageReference)')" />
+
+    <Reference Include="@(_OverriddenPackageReferenceExistent)" Private="true" />
+    <PackageReference Remove="@(_RemovedPackageReference)" />
+  </ItemGroup>
+
+</Project>

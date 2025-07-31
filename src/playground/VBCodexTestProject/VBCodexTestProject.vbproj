@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>VBCodexTestProject</RootNamespace>
+    <LangVersion>latest</LangVersion>
+    <ProvideCommandLineArgs>true</ProvideCommandLineArgs>
+  </PropertyGroup>
+
+  <Target Name="WriteCompilerArgs" AfterTargets="CoreCompile" Condition="@(VbcCommandLineArgs->Count()) != 0">
+    <WriteLinesToFile Lines="@(VbcCommandLineArgs)" File="$(MSBuildThisFileDirectory)\csc.args.txt" Overwrite="true" WriteOnlyWhenDifferent="True" />
+  </Target>
+</Project>
