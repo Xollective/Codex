@@ -75,17 +75,9 @@ public record QueryAugmentingHttpClientWrapper(IHttpClient Inner, bool FileMode 
             uri = new Uri(uri.OriginalString.Replace('?', '&'), UriKind.RelativeOrAbsolute);
         }
 
-        // Only need to modify uri if both contain query strings
-        if (string.IsNullOrEmpty(BaseAddress?.Query) || uri == null) return uri;
+        if (uri == null) return uri;
 
-        var fullUri = new Uri(BaseAddress, uri);
-        var builder = new UriBuilder(fullUri);
-
-        builder.Query = string.IsNullOrEmpty(builder.Query)
-            ? BaseAddress.Query
-            : $"{builder.Query}&{BaseAddress.Query.AsSpan().TrimStart('?')}";
-
-        return builder.Uri;
+        return BaseAddress.Combine(uri.ToString(), forcePreserveBaseQuery: true);
     }
 }
 

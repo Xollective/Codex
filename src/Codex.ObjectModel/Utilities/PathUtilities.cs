@@ -46,15 +46,22 @@ namespace Codex.Utilities
             return baseUri.Uri.Combine(relativeUri, preserveBaseQuery, forcePreserveBaseQuery);
         }
 
-        public static Uri Combine(this Uri baseUri, string relativeUri, bool preserveBaseQuery = true, bool forcePreserveBaseQuery = false)
+        public static Uri Combine(this Uri baseUri, string relativeUri, bool preserveBaseQuery = true, bool forcePreserveBaseQuery = false, bool treatBaseAsFolder = true)
         {
+            if (string.IsNullOrEmpty(relativeUri))
+            {
+                return baseUri;
+            }
+
             if ((!forcePreserveBaseQuery || string.IsNullOrEmpty(baseUri.Query))
                 && relativeUri?.Contains(":") == true)
             {
                 return new Uri(relativeUri);
             }
 
-            var result = new Uri(baseUri.EnsureTrailingSlash(), relativeUri);
+            baseUri = treatBaseAsFolder ? baseUri.EnsureTrailingSlash() : baseUri;
+
+            var result = new Uri(baseUri, relativeUri);
             if (preserveBaseQuery && !string.IsNullOrEmpty(baseUri.Query))
             {
                 var builder = new UriBuilder(result);

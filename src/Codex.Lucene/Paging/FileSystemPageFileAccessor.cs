@@ -18,7 +18,7 @@ namespace Codex.Lucene.Search
         public FileSystemPageFileAccessor(string rootDirectory)
         {
             RootDirectory = rootDirectory;
-            BaseAddress = new Uri(RootDirectory);
+            BaseAddress = new Uri(RootDirectory.EnsureTrailingSlash(normalize: true));
         }
 
         public IPageFileState CreateState(string path, PagingFileEntry entry)
@@ -119,8 +119,10 @@ namespace Codex.Lucene.Search
         {
             var range = request.ExtractRange();
 
+            var fullUri = BaseAddress.Combine(request.RequestUri.WithoutQuery().ToString(), preserveBaseQuery: false);
+
             using var stream = await OpenStreamCoreAsync(
-                request.RequestUri.OriginalString.AsSpan().SubstringFromFirstIndexOfAny("?").ToString(),
+                fullUri.AbsolutePath,
                 range,
                 writable: false,
                 httpMode: true) as MemoryStream;

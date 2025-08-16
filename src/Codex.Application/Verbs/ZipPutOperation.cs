@@ -28,7 +28,7 @@ public record ZipPutOperation : OperationBase
         await base.InitializeAsync();
         SourcePath = Path.GetFullPath(SourcePath);
         TargetZipPath = Path.GetFullPath(TargetZipPath);
-        EntryPathPrefix = EntryPathPrefix?.EnsureTrailingSlash("/", normalize: true);
+        EntryPathPrefix = EntryPathPrefix?.EnsureTrailingSlash('/', normalize: true);
     }
 
     protected override async ValueTask<int> ExecuteAsync()

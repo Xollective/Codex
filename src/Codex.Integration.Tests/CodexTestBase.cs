@@ -26,6 +26,8 @@ public record CodexTestBase : IDisposable
 
     public Action<AnalyzeOperation> UpdateAnalyze { get; set; }
 
+    public const string IndexContainer = "indexcontainer";
+
     public bool CleanTestDir { get; set; }
     public ITestOutputHelper Output { get; }
     public TestLogger Logger { get; }

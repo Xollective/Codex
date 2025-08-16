@@ -29,6 +29,7 @@
     <PackageReference Include="LibGit2Sharp.NativeBinaries" />
     <PackageReference Include="Microsoft.Build.Locator" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" />
+    <PackageReference Include="Microsoft.Net.Http.Headers" />
 
     <PackageReference Include="Mono.Options"/>
   </ItemGroup>

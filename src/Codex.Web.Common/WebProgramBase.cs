@@ -170,11 +170,8 @@ public class WebProgramBase(WebProgramArguments args) : CodexProgramBase, IRepos
         }
         else
         {
-            var sourceUri = new Uri(url.Replace('\\', '/').TrimStart('/'), UriKind.Relative);
-            var uriBuilder = new UriBuilder(args.RootUrl);
-            uriBuilder.Path = PathUtilities.UriCombine(uriBuilder.Path, sourceUri.GetComponents(UriComponents.Path, UriFormat.Unescaped));
-            uriBuilder.Query = sourceUri.Query;
-            return uriBuilder.Uri.ToString();
+            var result = args.RootUrl.Combine(args.IndexSourceJsonUri).Combine(url, treatBaseAsFolder: false);
+            return result.ToString();
         }
     }
 

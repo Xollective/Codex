@@ -141,9 +141,9 @@ namespace Codex.Utilities
             }
         }
 
-        public static string EnsureTrailingSlash(this string path, string slash = null, bool normalize = false)
+        public static string EnsureTrailingSlash(this string path, char? slash = null, bool normalize = false)
         {
-            slash ??= DirectorySeparator;
+            slash ??= DirectorySeparatorChar;
             if (string.IsNullOrEmpty(path))
             {
                 return path;
@@ -151,10 +151,10 @@ namespace Codex.Utilities
 
             if (normalize)
             {
-                path = PathUtilities.NormalizePath(path);
+                path = PathUtilities.NormalizePath(path, directorySeparator: slash);
             }
 
-            if (!path.EndsWith(slash))
+            if (!path.EndsWith(slash.Value))
             {
                 path += slash;
             }

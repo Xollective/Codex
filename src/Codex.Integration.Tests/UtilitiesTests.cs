@@ -30,16 +30,16 @@ public partial record UtilitiesTests(ITestOutputHelper output) : CodexTestBase(o
 {
     private static ISpanSerializer<SmallIntArray> ValueArraySerializer = new BinaryItemSerializer<SmallIntArray>();
 
-    [Fact]
-    public void UriCombine()
+    [Theory]
+    [InlineData("https://local:234?hello=world", "relative/index", "https://local:234/relative/index?hello=world")]
+    [InlineData(
+        "http://127.0.0.1:33747/devstoreaccount1/testcontainer/index.zip?sv=2023-08-03&ss=b&srt=sco&se=2025-08-16T12%3A46%3A25Z&sp=rwdxylacuptfi&sig=rIFwMOwdtKWddOW6nTHNPrMB%2BSg724E%2BaM7HZ8%2BgRHE%3D",
+        "",
+        "http://127.0.0.1:33747/devstoreaccount1/testcontainer/index.zip?sv=2023-08-03&ss=b&srt=sco&se=2025-08-16T12%3A46%3A25Z&sp=rwdxylacuptfi&sig=rIFwMOwdtKWddOW6nTHNPrMB%2BSg724E%2BaM7HZ8%2BgRHE%3D")]
+    public void UriCombine(string baseUri, string relativeUri, string expected, bool preserveBaseQuery = true, bool forcePreserveBaseQuery = false)
     {
-        test("https://local:234?hello=world", "relative/index", "https://local:234/relative/index?hello=world");
-
-        void test(string baseUri, string relativeUri, string expected, bool preserveBaseQuery = true, bool forcePreserveBaseQuery = false)
-        {
-            var actual = PathUtilities.Combine(baseUri, relativeUri, preserveBaseQuery, forcePreserveBaseQuery);
-            actual.ToString().Should().Be(expected);
-        }
+        var actual = PathUtilities.Combine(baseUri, relativeUri, preserveBaseQuery, forcePreserveBaseQuery);
+        actual.ToString().Should().Be(expected);
     }
 
     [Fact]
