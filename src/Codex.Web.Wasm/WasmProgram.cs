@@ -55,6 +55,11 @@ internal class WasmProgram(WebProgramArguments args) : WebProgramBase(args)
         }
     }
 
+    protected override IInnerHttpClient GetClient(HttpClientKind kind)
+    {
+        return BrowserAppContext.GetClient(kind);
+    }
+
     public static async Task RunTimer()
     {
         while (true)

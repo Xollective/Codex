@@ -33,7 +33,7 @@ public partial class BrowserAppContext
 
     }
 
-    private static IInnerHttpClient GetClient(HttpClientKind kind)
+    internal static IInnerHttpClient GetClient(HttpClientKind kind)
     {
         var client = new BrowserHttpClientWrapper();
         return client;
