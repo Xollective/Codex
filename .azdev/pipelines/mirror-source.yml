@@ -1,0 +1,43 @@
+trigger: none
+
+resources:
+  repositories:
+  - repository: nucodex
+    type: github
+    name: Ref12/NuCodex
+    endpoint: Ref12
+  - repository: azdevagent
+    type: github
+    name: Xollective/AzDevAgent
+    endpoint: Ref12
+
+parameters:
+- name: Push
+  type: boolean
+  default: true
+- name: BuildAndIndex
+  type: boolean
+  default: true
+
+pool:
+  vmImage: windows-latest
+
+variables:
+- group: ref12vars
+- group: github-agents
+
+jobs:
+- template: .azdev/run-with-agents.yml@azdevagent
+  parameters:
+    image: windows-latest
+    jobs:
+    - job: opensrc
+      steps:
+      - checkout: nucodex
+        path: s/source
+      - checkout: nucodex
+        persistCredentials: true
+        path: s/target
+      - checkout: self
+        persistCredentials: true
+        path: s/xocodex
