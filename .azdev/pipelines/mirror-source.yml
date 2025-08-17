@@ -49,6 +49,6 @@ jobs:
 
           git fetch --all
 
-          git push origin nucodex/opensrc/current:refs/heads/main --force
+          git push origin nucodex/opensrc/current:refs/heads/main-mirror --force
         displayName: Push changes to xocodex/main
         workingDirectory: $(Build.SourcesDirectory)/xocodex      
