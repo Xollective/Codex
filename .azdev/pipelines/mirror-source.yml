@@ -38,6 +38,8 @@ jobs:
         path: s/xocodex
       - pwsh: |
           $PSNativeCommandUseErrorActionPreference = $true
+          git fetch
+
           git branch opensrc/current
         displayName: Create branch
         workingDirectory: $(Build.SourcesDirectory)/nucodex      
