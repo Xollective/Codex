@@ -7,10 +7,10 @@ resources:
     name: Ref12/NuCodex
     endpoint: Ref12
     trigger:
-    batch: true
-    branches:
-      include:
-      - opensrc/current
+      batch: true
+      branches:
+        include:
+        - opensrc/current
   - repository: azdevagent
     type: github
     name: Xollective/AzDevAgent
