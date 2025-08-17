@@ -1,0 +1,178 @@
+name: Build And Publish
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Build
+      shell: pwsh
+      run: ./build.ps1
+      env:
+        DisableWorkloads: 'true'
+
+    - name: Publish Exe
+      shell: pwsh
+      run: dotnet publish src/Codex.Application/Codex.Application.csproj -o bin/exe
+
+    - name: Analyze
+      shell: pwsh
+      run: ./analyze.ps1
+
+    - name: Ingest
+      shell: pwsh
+      run: ./ingest.ps1 -OutputDir bin/web/index
+
+    - name: Upload Index Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: index
+        path: bin/web/index
+
+  test:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Run Tests
+      shell: pwsh
+      run: dotnet test src/Codex.Integration.Tests/Codex.Integration.Tests.csproj
+
+  publish:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # - name: Set up PowerShell
+    #   uses: actions/setup-powershell@v2
+
+    - name: Set up Wasm
+      shell: pwsh
+      working-directory: src/Codex.Web.Wasm
+      run: |
+        dotnet workload install wasm-tools
+
+        dotnet workload install wasm-experimental
+      
+    - name: Publish Wasm
+      shell: pwsh
+      working-directory: src/Codex.Web.Wasm
+      run: dotnet publish Codex.Web.Wasm.csproj -o "$Env:GITHUB_WORKSPACE/bin/wasm"
+
+    - name: Upload Wasm Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: codex.web.wasm
+        path: bin/wasm/wwwroot
+
+    - name: Publish Exe
+      shell: pwsh
+      run: dotnet publish src/Codex.Application/Codex.Application.csproj -o bin/exe
+
+    - name: Upload Exe Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: codex
+        path: bin/exe
+
+    - name: Create WASM deployment
+      shell: pwsh
+      run: ./deploywasm.ps1
+
+
+    # - name: Set up PowerShell
+    #   uses: actions/setup-powershell@v2
+
+  deploy_github_pages:
+    runs-on: windows-latest
+    needs: [build, publish]
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Download Wasm Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: codex.web.wasm
+          path: ./site-source
+
+      - name: Download Codex.exe Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: codex
+          path: ./codex
+
+      - name: Create WASM deployment
+        shell: pwsh
+        run: ./codex/codex.exe deployweb -s ./site-source -t ./site -h pages -m wasm -i index
+
+      - name: Download Index Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: index
+          path: ./site/index
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+    # deploy_external_repo:
+    #   runs-on: ubuntu-latest
+    #   needs: publish
+    #   steps:
+    #     - name: Download Wasm Artifact
+    #       uses: actions/download-artifact@v4
+    #       with:
+    #         name: codex.web.wasm
+    #         path: ./wasm-artifact
+
+    #     - name: Set up Git
+    #       run: |
+    #         git config --global user.name "github-actions[bot]"
+    #         git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+    #     - name: Clone codex-pages repository
+    #       run: |
+    #         git clone --single-branch --branch github-pages https://github.com/Ref12/codex-pages codex-pages
+
+    #     - name: Clear existing content
+    #       run: |
+    #         shopt -s dotglob
+    #         rm -rf codex-pages/*
+
+    #     - name: Copy artifact contents
+    #       run: |
+    #         cp -r ./wasm-artifact/* codex-pages/
+
+    #     - name: Commit and push changes
+    #       env:
+    #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #       run: |
+    #         cd external-pages
+    #         git add .
+    #         git commit -m "Update github-pages branch with latest wasm artifact" || echo "No changes to commit"
+    #         git push https://x-access-token:${GH_TOKEN}@github.com/Ref12/codex-pages.git github-pages
