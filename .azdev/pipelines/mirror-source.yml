@@ -6,18 +6,15 @@ resources:
     type: github
     name: Ref12/NuCodex
     endpoint: Ref12
+    trigger:
+    batch: true
+    branches:
+      include:
+      - opensrc/current
   - repository: azdevagent
     type: github
     name: Xollective/AzDevAgent
     endpoint: Ref12
-
-parameters:
-- name: Push
-  type: boolean
-  default: true
-- name: BuildAndIndex
-  type: boolean
-  default: true
 
 pool:
   vmImage: windows-latest
@@ -34,10 +31,17 @@ jobs:
     - job: opensrc
       steps:
       - checkout: nucodex
-        path: s/source
-      - checkout: nucodex
+        path: s/nucodex
         persistCredentials: true
-        path: s/target
       - checkout: self
         persistCredentials: true
         path: s/xocodex
+      - pwsh: |
+          $PSNativeCommandUseErrorActionPreference = $true
+          git remote add nucodex "$(Build.SourcesDirectory)/nucodex"
+
+          git fetch --all
+
+          git push origin nucodex/opensrc/current:refs/heads/main --force
+        displayName: Push changes to xocodex/main
+        workingDirectory: $(Build.SourcesDirectory)/xocodex      
