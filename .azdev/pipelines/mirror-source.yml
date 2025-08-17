@@ -33,13 +33,13 @@ jobs:
       - checkout: nucodex
         path: s/nucodex
         persistCredentials: true
+        fetchDepth: 0
       - checkout: self
         persistCredentials: true
         path: s/xocodex
+        fetchDepth: 0
       - pwsh: |
           $PSNativeCommandUseErrorActionPreference = $true
-          git fetch
-
           git branch opensrc/current
         displayName: Create branch
         workingDirectory: $(Build.SourcesDirectory)/nucodex      
