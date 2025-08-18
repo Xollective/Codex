@@ -1,0 +1,21 @@
+name: Mirror main-pre to main
+
+on:
+  push:
+    branches:
+      - main-pre
+  workflow_dispatch:
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+      ref: main-pre
+      
+    - name: Create and Push automain Branch
+      run: |
+        git reset HEAD~1 --hard
+        git push origin main --force
