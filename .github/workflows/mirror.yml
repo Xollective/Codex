@@ -1,4 +1,4 @@
-name: Mirror main-pre to main
+name: Update main from preview mirror
 
 on:
   push:
@@ -12,7 +12,7 @@ jobs:
     
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v5
       ref: main-pre
       
     - name: Create and Push automain Branch
