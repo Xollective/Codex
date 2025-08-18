@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main-pre
+      - azdev/pipelines
   workflow_dispatch:
 
 jobs:
@@ -15,6 +16,7 @@ jobs:
       uses: actions/checkout@v5
       with:
         ref: main-pre
+        fetch-depth: 0
       
     - name: Create and Push automain Branch
       run: |
