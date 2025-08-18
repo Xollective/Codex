@@ -21,4 +21,4 @@ jobs:
     - name: Create and Push automain Branch
       run: |
         git reset HEAD~1 --hard
-        git push origin main --force
+        git push origin HEAD:refs/heads/main --force
