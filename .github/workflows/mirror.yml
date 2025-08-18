@@ -13,7 +13,8 @@ jobs:
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v5
-      ref: main-pre
+      with:
+        ref: main-pre
       
     - name: Create and Push automain Branch
       run: |
