@@ -5,6 +5,9 @@
     <AvaloniaVersion>11.0.0</AvaloniaVersion>
     <AvaloniaEditVersion>11.0.0</AvaloniaEditVersion>
     <DefineConstants>$(DefineConstants);CONTRACTS_LIGHT_ASSERTS</DefineConstants>
+    <!-- ##if PRIVATE_SOURCE -->
+    <PackageId Condition="'$(PackageId)' != ''">$(PackageId).Internal</PackageId>
+    <!-- ##endif PRIVATE_SOURCE -->
   </PropertyGroup>
 
   <PropertyGroup>

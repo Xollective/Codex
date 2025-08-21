@@ -5,12 +5,12 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>annotations</Nullable>
     <OutputType>Exe</OutputType>
-    <PackageId>Ref12.Codex.Automation.Workflow</PackageId>
+    <PackageId>Ref12.AutoCodex</PackageId>
     <PackageProjectUrl>https://github.com/Ref12/Codex/</PackageProjectUrl>
-    <PackageDescription>Tool used to run codex indexing workflows as a part of builds in Azure DevOps pipelines</PackageDescription>
+    <PackageDescription>Tool used to run codex indexing workflows particularly in Azure DevOps pipelines or github workflows.</PackageDescription>
     <Authors>Ref12</Authors>
     <PackAsTool>true</PackAsTool>
-    <ToolCommandName>codextask</ToolCommandName>
+    <ToolCommandName>autocodex</ToolCommandName>
     <PackageVersion>2.0.0</PackageVersion>
   </PropertyGroup>
 

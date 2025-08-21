@@ -5,7 +5,7 @@
     <OutputType>Exe</OutputType>
     <AssemblyName>Codex</AssemblyName>
 
-    <PackageId>Ref12.Tool.Codex</PackageId>
+    <PackageId>Ref12.Codex</PackageId>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>codex</ToolCommandName>
     <PackageOutputPath>./nupkg</PackageOutputPath>
