@@ -7,12 +7,13 @@ on:
       - azdev/pipelines
   workflow_dispatch:
 
+permissions:
+  contents: write
+  actions: write
+  
 jobs:
   mirror:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      actions: write
     
     steps:
     - name: Checkout Repository
@@ -20,6 +21,7 @@ jobs:
       with:
         ref: main-pre
         fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
       
     - name: Create and Push automain Branch
       run: |
