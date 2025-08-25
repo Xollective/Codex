@@ -5,11 +5,11 @@
     <OutputType>Exe</OutputType>
     <AssemblyName>Codex</AssemblyName>
 
-    <PackageId>Ref12.Tool.Codex</PackageId>
+    <PackageId>Ref12.Codex</PackageId>
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>codex</ToolCommandName>
     <PackageOutputPath>./nupkg</PackageOutputPath>
-    <PackageVersion>2.0.0</PackageVersion>
+    <VersionPrefix>2.0.0</VersionPrefix>
 
     <UserSecretsId>CodexTests-5405dcff-71b8-4108-918a-458206700d15</UserSecretsId>
   </PropertyGroup>

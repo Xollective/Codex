@@ -12,6 +12,15 @@ namespace Codex.Utilities
     {
         public readonly ConcurrentDictionary<string, bool> InclusionByExtension = new ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
 
+        public static readonly BinaryFileSystemFilter Default = new BinaryFileSystemFilter(new string[]
+        {
+            // Exclude known binary file formats
+            ".exe", ".dll", ".blob", ".db", ".pdb", ".png", ".binlog",
+
+            // Exclude localization related files
+            ".lcl",  ".lci"
+        });
+
         public BinaryFileSystemFilter(IEnumerable<string> excludedExtensions)
         {
             foreach (var extension in excludedExtensions)

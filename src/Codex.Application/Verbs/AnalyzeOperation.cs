@@ -245,15 +245,7 @@ public record AnalyzeOperation : IndexReadOperationBase
                         // This is used to ignore files which are not specified in the .gitignore files
                         new GitIgnoreFilter(".cdxignore") { Logger = logger },
 
-                        new BinaryFileSystemFilter(new string[]
-                            {
-                                // Exclude known binary file formats
-                                ".exe", ".dll", ".blob", ".db", ".pdb", ".png", ".binlog",
-
-                                // Exclude localization related files
-                                ".lcl",  ".lci"
-                            })
-                        ))
+                        BinaryFileSystemFilter.Default))
                 {
                     DisableEnumeration = ProjectMode || DisableEnumeration || file.Length != 0
                 }));

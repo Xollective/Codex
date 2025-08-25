@@ -1,0 +1,196 @@
+name: Build And Publish
+run-name: R#${{ github.run_number }} (${{ github.event.repository.updated_at }}) [${{ github.event.head_commit.message }}]
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Initialize directories
+      shell: pwsh
+      run: |
+        mkdir binlogs
+
+    - name: Build
+      shell: pwsh
+      run: ./build.ps1  /bl:binlogs/build.binlog
+      env:
+        DisableWorkloads: 'true'
+
+    - name: Publish Exe
+      shell: pwsh
+      run: dotnet publish src/Codex.Application/Codex.Application.csproj -o bin/exe /bl:binlogs/publish.exe.binlog
+
+    - name: Analyze
+      shell: pwsh
+      run: ./analyze.ps1 -BinlogPath binlogs/build.binlog
+
+    - name: Ingest
+      shell: pwsh
+      run: ./ingest.ps1 -OutputDir bin/web/index
+
+    - name: Upload Index Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: index
+        path: bin/web/index
+
+    - name: Upload Binlogs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ github.job }}-binlogs
+        path: binlogs
+
+  test:
+    runs-on: windows-latest
+    timeout-minutes: 10
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Run Tests
+      shell: pwsh
+      run: dotnet test src/Codex.Integration.Tests/Codex.Integration.Tests.csproj
+  pack:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Initialize directories
+      shell: pwsh
+      run: |
+        mkdir binlogs
+
+    - name: Set up Wasm
+      shell: pwsh
+      run: |
+        $timestamp = Get-Date -Format "yyyyMMdd.${{ github.run_number }}"
+
+        dotnet pack Codex.xln /p:ProjectFilter=pack `
+          /p:CodexPackMode=CI `
+          /p:BUILD_REPOSITORY_PROVIDER=GitHub `
+          /p:VersionSuffix="${timestamp}+$(git rev-parse --short HEAD)" `
+          /bl:binlogs/pack.binlog `
+          -o ./bin/packages
+          
+    - name: Upload Packages Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: packages
+        path: bin/packages
+
+    - name: Upload Binlogs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ github.job }}-binlogs
+        path: binlogs
+
+  publish:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    - name: Initialize directories
+      shell: pwsh
+      run: |
+        mkdir binlogs
+
+    - name: Set up Wasm
+      shell: pwsh
+      working-directory: src/Codex.Web.Wasm
+      run: |
+        dotnet workload install wasm-tools
+
+        dotnet workload install wasm-experimental
+      
+    - name: Publish Wasm
+      shell: pwsh
+      working-directory: src/Codex.Web.Wasm
+      run: dotnet publish Codex.Web.Wasm.csproj -o "$Env:GITHUB_WORKSPACE/bin/wasm" /bl:"$Env:GITHUB_WORKSPACE/binlogs/publish.wasm.binlog"
+
+    - name: Upload Wasm Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: codex.web.wasm
+        path: bin/wasm/wwwroot
+
+    - name: Publish Exe
+      shell: pwsh
+      run: dotnet publish src/Codex.Application/Codex.Application.csproj -o bin/exe /bl:binlogs/publish.exe.binlog
+
+    - name: Upload Exe Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: codex
+        path: bin/exe
+
+    - name: Upload Binlogs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ github.job }}-binlogs
+        path: binlogs
+
+    - name: Create WASM deployment
+      shell: pwsh
+      run: ./deploywasm.ps1
+
+  deploy_github_pages:
+    runs-on: windows-latest
+    needs: [build, test, publish]
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: Download Wasm Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: codex.web.wasm
+          path: ./site-source
+
+      - name: Download Codex.exe Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: codex
+          path: ./codex
+
+      - name: Create WASM deployment
+        shell: pwsh
+        run: ./codex/codex.exe deployweb -s ./site-source -t ./site -h pages -m wasm -i "index?_ts{timestamp}=1"
+
+      - name: Download Index Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: index
+          path: ./site/index
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./site
+
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main'
+        id: deployment
+        uses: actions/deploy-pages@v4

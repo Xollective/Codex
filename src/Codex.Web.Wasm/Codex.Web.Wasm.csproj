@@ -4,6 +4,7 @@
     <WasmEnableThreads>true</WasmEnableThreads>
     <PublishTrimmed>false</PublishTrimmed>
     <WasmEnableDebugging>true</WasmEnableDebugging>
+    <InvariantGlobalization>true</InvariantGlobalization>
   </PropertyGroup>
 
   <ItemGroup>
