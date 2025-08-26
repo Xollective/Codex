@@ -6,6 +6,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using Codex.Sdk;
 using Codex.Utilities;
 
 namespace Codex.Automation.Workflow
@@ -42,18 +43,18 @@ namespace Codex.Automation.Workflow
             bool useCommit = !string.IsNullOrEmpty(arguments.Commit);
             if (!arguments.NoClone)
             {
-                var repoUrl = arguments.CodexRepoUrl;
+                var repoUrl = arguments.HttpRepoUri;
                 var expansions = new Dictionary<string, string>();
 
-                if (arguments.RepoUri != null)
+                if (arguments.RepoName is { } repoName)
                 {
                     var repoUriBuilder = new UriBuilder(repoUrl);
-                    if (arguments.PersonalAccessTokens.TryGetValue(arguments.RepoUri.GetRepoName(), out var pat))
+                    if (arguments.PersonalAccessTokens.TryGetValue(repoName, out var pat))
                     {
                         var parVarToken = "%PAT%";
                         repoUriBuilder.UserName = parVarToken;
                         expansions[parVarToken] = pat;
-                        repoUrl = repoUriBuilder.ToString();
+                        repoUrl = repoUriBuilder.Uri;
                         sanitizeRemotes = true;
                         arguments.EncryptOutputs = true;
                     }
@@ -65,13 +66,13 @@ namespace Codex.Automation.Workflow
                     {
                         "clone",
                         useCommit ? "--no-checkout" : "",
-                        repoUrl, 
+                        repoUrl.ToString(), 
                         arguments.SourcesDirectory
                     }.ToString(),
                     expansions: expansions);
                 if (!successfullyCloned)
                 {
-                    throw new Exception($"Failed to clone {arguments.CodexRepoUrl}");
+                    throw new Exception($"Failed to clone {arguments.HttpRepoUri}");
                 }
             }
 
@@ -79,7 +80,7 @@ namespace Codex.Automation.Workflow
             {
                 if (!RunProcess("git.exe", $"checkout -b local/{Guid.NewGuid():N}/{arguments.Commit} {arguments.Commit}", workingDirectory: arguments.SourcesDirectory))
                 {
-                    throw new Exception($"Failed to checkout of '{arguments.Commit}' for {arguments.CodexRepoUrl}");
+                    throw new Exception($"Failed to checkout of '{arguments.Commit}' for {arguments.HttpRepoUri}");
                 }
             }
 
@@ -92,15 +93,15 @@ namespace Codex.Automation.Workflow
             {
                 if (!RunProcess("git.exe", "submodule update --init --recursive", workingDirectory: arguments.SourcesDirectory))
                 {
-                    throw new Exception($"Failed to init submodules for {arguments.CodexRepoUrl}");
+                    throw new Exception($"Failed to init submodules for {arguments.HttpRepoUri}");
                 }
 
                 if (sanitizeRemotes)
                 {
                     if (!RunProcess("git.exe", "remote remove origin") ||
-                        !RunProcess("git.exe", $"remote add origin {arguments.CodexRepoUrl}"))
+                        !RunProcess("git.exe", $"remote add origin {arguments.HttpRepoUri}"))
                     {
-                        throw new Exception($"Failed sanitize remotes for {arguments.CodexRepoUrl}");
+                        throw new Exception($"Failed sanitize remotes for {arguments.HttpRepoUri}");
                     }
                 }
             }
@@ -219,7 +220,7 @@ namespace Codex.Automation.Workflow
         {
             Log(solution);
 
-            InvokeTool(DotNetPath, "workload", "restore", solution);
+            //InvokeTool(DotNetPath, "workload", "restore", solution);
 
             InvokeTool(MsBuildPath, "/t:Restore", solution);
 
@@ -232,7 +233,7 @@ namespace Codex.Automation.Workflow
         {
             if (ToolExistsMap[processExe])
             {
-                return RunProcess(processExe, new ArgList(arguments).ToString(), this.arguments.Settings?.EnvironmentVariables);
+                return RunProcess(processExe, new ArgList(arguments).ToString(), this.arguments.Then(a => a.GetEnvMap().Concat(a.Settings?.EnvironmentVariables ?? [])));
             }
             else
             {

@@ -23,7 +23,7 @@ namespace Codex.Automation.Workflow
             Console.WriteLine($"{method}: {message}");
         }
 
-        public static bool RunProcess(string exePath, string arguments, IDictionary<string, string> envVars = null,
+        public static bool RunProcess(string exePath, string arguments, IEnumerable<KeyValuePair<string, string>> envVars = null,
             AsyncOut<int>? exitCode = null, string workingDirectory = null, IReadOnlyDictionary<string, string> expansions = null, TaskCompletionSource<Process> proc = null,
             CancellationToken token = default, bool admin = false)
         {

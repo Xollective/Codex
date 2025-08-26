@@ -6,21 +6,20 @@ namespace Codex.Automation.Workflow
     /// </summary>
     public enum Mode
     {
-        Prepare = 1 << 0,
-        UploadOnly = 1 << 1,
-        //IngestOnly = 1 << 2,
-        AnalyzeOnly = 1 << 3,
-        BuildOnly = 1 << 4,
-        GC = 1 << 5 | Prepare,
-        IndexOnly = 1 << 6,
-        Codex = 1 << 7,
-        Test = 1 << 8,
+        Prepare = 1 << 16,
+        UploadOnly = 1 << 17,
+        AnalyzeOnly = 1 << 18,
+        BuildOnly = 1 << 19,
+        GC = 1 << 20 | Prepare,
+        IndexOnly = 1 << 21,
+        Codex = 1 << 22,
+        Test = 1 << 23,
 
         FullAnalyze = Prepare | AnalyzeOnly | UploadOnly,
-        Ingest = Prepare | IndexOnly,
         Upload = Prepare | UploadOnly,
         Build = Prepare | BuildOnly,
         Index = Prepare | IndexOnly,
+        Ingest = Index,
 
         IndexAndUpload = Index | UploadOnly,
 
@@ -32,7 +31,7 @@ namespace Codex.Automation.Workflow
 
         FullIndex = FullIndexNoUpload | Upload,
 
-        GetLocation,
+        GetLocation = 0,
         Cli
     }
 }

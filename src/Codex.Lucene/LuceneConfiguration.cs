@@ -31,6 +31,8 @@ namespace Codex.Lucene.Search
         {
         }
 
+        public string? Alias { get; set; }
+
         public IObjectStorage DebugStorage { get; set; }
         public IObjectStorage ObjectStorage { get; set; }
         public IObjectStorage DiskStorageOverride { get; set; }

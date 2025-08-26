@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <PackageReference Include="System.Management.Automation" />
+    <PackageReference Include="System.CommandLine" />
   </ItemGroup>
 
 </Project>

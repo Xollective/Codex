@@ -33,6 +33,9 @@ public record IngestOperation : IndexReadOperationBase
     [Option('n', "name", HelpText = "Override name of the repository")]
     public string RepoName { get; set; }
 
+    [Option("alias", HelpText = "The alias used to identify the repo during search. NOTE: This supersedes repo name for this purpose, but does not mark files as belonging to a repo with this value")]
+    public string? Alias { get; set; }
+
     [Option("includeType", HelpText = "Specifies inclusion list of search types")]
     public IList<string> IncludeTypes { get; set; }
 
@@ -214,6 +217,7 @@ public record IngestOperation : IndexReadOperationBase
             IncludedTypes = IncludeTypes?.Count == 0 ? null : IncludeTypes?.ToHashSet(),
             StoreIndexFilesInGit = UseGitStorage,
             StagingDirectory = StagingDirectory,
+            Alias = Alias,
         };
 
         IObjectStorage getDiskObjectStorage(string relativePath = "")

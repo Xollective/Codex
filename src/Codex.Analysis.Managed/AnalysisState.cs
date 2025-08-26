@@ -132,7 +132,7 @@ public class SpanAnalysisState
     public TextSpan? Span;
     public bool Skip;
 
-    public Optional<SyntaxNode> DeclarationNode;
+    public Utilities.Optional<SyntaxNode> DeclarationNode;
 
     public bool ExcludeFromSearch;
 }

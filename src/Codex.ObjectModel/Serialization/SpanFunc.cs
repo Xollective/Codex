@@ -18,3 +18,6 @@ public delegate ReadOnlySpan<TResult> ReadOnlySpanResultFunc<TResult>();
 public delegate ReadOnlySpan<TResult> ReadOnlySpanResultFunc<T, TResult>(in T arg);
 public delegate ReadOnlySpan<TResult> ReadOnlySpanResultInFunc<T, TResult>(In<T> arg);
 
+public delegate ref TRef RefFunc<TRef>();
+public delegate ref TRef RefFunc<in T, TRef>(T arg0);
+

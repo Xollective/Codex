@@ -1,119 +1,242 @@
 using System.Buffers;
+using System.Collections;
+using System.CommandLine;
+using System.CommandLine.Builder;
+using System.CommandLine.Parsing;
 using System.Diagnostics;
 using System.IO.Compression;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
+using Codex.Application;
+using Codex.Cli;
+using Codex.Sdk;
 using Codex.Utilities;
+using CommandLine;
 using DotNext.Collections.Generic;
+using J2N.Text;
 
 namespace Codex.Automation.Workflow
 {
     using static Codex.CodexConstants;
     using static Helpers;
 
-    public class WorkflowProgram
+    public partial class WorkflowProgram
     {
         public delegate bool RunCodexProcessDelegate(string exePath, string arguments, AsyncOut<int> exitCode);
         public static RunCodexProcessDelegate RunCodexProcess = (exePath, arguments, exitCode) => Helpers.RunProcess(exePath, arguments, exitCode: exitCode);
 
-        private static Mode GetMode(ref string[] args)
-        {
-            if (args[0].StartsWith("/"))
-            {
-                // No mode specified. Use default mode.
-                return Mode.FullAnalyze;
-            }
-            else
-            {
-                var modeArgument = args[0];
-                args = args.Skip(1).ToArray();
-
-                if (!Enum.TryParse<Mode>(modeArgument, ignoreCase: true, result: out var mode))
-                {
-                    throw new ArgumentException("Invalid mode: " + modeArgument);
-                }
-
-                return mode;
-            }
-        }
-
-        private static bool HasModeFlag(Mode mode, Mode flag)
+        internal static bool HasFlag(Mode mode, Mode flag)
         {
             return (mode & flag) == flag;
         }
 
-        public static int Main(string[] args)
+        public static Task<int> Main(string[] args)
         {
-            return Run(args, out _);
+            return RunAsync(args);
         }
 
-        public static int Run(string[] args, out Arguments arguments)
+        public static ParseResult Parse(ConfiguredCommandLineArgs args, Arguments arguments)
         {
-            var exitCode = new AsyncOut<int>();
-            arguments = null;
-            if (args.Length == 0)
+            var rootCommand = CreateRootCommand(arguments);
+            var builder = new CommandLineBuilder(rootCommand)
+                .UseVersionOption()
+                .UseHelp()
+                .UseEnvironmentVariableDirective()
+                .UseParseDirective()
+                .UseParseErrorReporting();
+
+            if (args.UseExceptionHandler)
             {
-                // TODO: Add help text
-                Console.WriteLine("No arguments specified.");
-                return 0;
+                builder = builder.UseExceptionHandler();
             }
 
-            Mode mode = GetMode(ref args);
+            builder = builder.CancelOnProcessTermination();
 
-            if (mode == Mode.GetLocation)
-            {
-                Console.WriteLine(Assembly.GetExecutingAssembly().Location);
-                return 0;
-            }
+            return builder.Build().Parse(args.Arguments);
+        }
 
-            arguments = mode == Mode.Codex || mode == Mode.Cli
-                ? new Arguments()
-                : Arguments.Parse(args);
+        public static async Task<int> RunAsync(ConfiguredCommandLineArgs args, AsyncOut<Arguments> arguments = null)
+        {
+            arguments = arguments.SetOrCreate();
+            arguments.Value = new();
+            var parseResult = Parse(args, arguments.Value);
+            var exitCode = await parseResult.InvokeAsync();
 
-            bool success = RunMode(mode, arguments, args, exitCode);
-
-            if (!success)
+            if (exitCode != 0 && arguments.Value.AzureDevopsMode)
             {
                 Console.WriteLine("##vso[task.complete result=Failed;]DONE");
             }
 
-            return !success && exitCode.Value == 0 ? -1 : exitCode.Value;
+            return exitCode;
         }
 
-        private static bool RunMode(Mode mode, Arguments arguments, string[] args, AsyncOut<int> exitCode)
+        public static int Run(ConfiguredCommandLineArgs args, out Arguments arguments)
         {
-            if (mode == Mode.Cli)
-            {
-                return new CliProgram().RunAsync(args).GetAwaiter().GetResult() == 0;
-            }
+            var result = RunAsync(args, new(out var argumentsResult)).GetAwaiter().GetResult();
+            arguments = argumentsResult.Value;
+            return result;
+        }
 
+        public static RootCommand CreateRootCommand(Arguments arguments)
+        {
             string codexBinDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
             arguments.CodexBinDir = codexBinDirectory;
-            string executablePath = Path.Combine(codexBinDirectory, "Codex.exe");
+            arguments.CodexExePath = Path.Combine(codexBinDirectory, "Codex.exe");
 
-            if (mode == Mode.Codex)
+            var rootCommand = new RootCommand();
+
+            foreach (var group in Enum.GetNames<Mode>().GroupBy(n => Enum.Parse<Mode>(n)))
             {
-                return RunCodexProcess(executablePath, new ArgList(args).ToString(), exitCode: exitCode);
+                var mode = group.Key;
+                if (Out.Var(out var command, CreateSpecialCommand(mode, arguments)) == null)
+                {
+                    command = Arguments.AddInternalCommand(arguments, mode);
+                }
+
+                foreach (var name in group.Except([command.Name], StringComparer.OrdinalIgnoreCase))
+                {
+                    command.AddAlias(ProcessCommandName(name));
+                }
+
+                command.Description ??= GetCommandDescription(mode);
+
+                rootCommand.Add(command);
             }
+
+            return rootCommand;
+        }
+
+        public static string GetCommandDescription(Mode mode)
+        {
+            var ops = new List<string>()
+            {
+                HasFlag(mode, Mode.Prepare) ? "prepare pipeline variables" : null,
+                HasFlag(mode, Mode.BuildOnly) ? "clone and build repository" : null,
+                HasFlag(mode, Mode.AnalyzeOnly) ? "analyze repository" : null,
+                HasFlag(mode, Mode.IndexOnly) ? "index analysis output" : null,
+                HasFlag(mode, Mode.UploadOnly) ? "upload outputs" : null,
+            };
+
+            ops.RemoveAll(s => s == null);
+
+            if (ops.Count > 0)
+            {
+                ops[0] = ops[0].Then(o => char.ToUpperInvariant(o[0]) + o[1..]);
+            }
+
+            return ops.Count switch
+            {
+                0 => null,
+                2 => $"{ops[0]} and {ops[1]}",
+                1 => ops[0],
+                _ => string.Join(", ", ops)
+            };
+        }
+
+        public static string ProcessCommandName(object mode)
+        {
+            var name = mode.ToString();
+            bool lastWasLower = false;
+            StringBuilder sb = new StringBuilder();
+            foreach (var ch in name)
+            {
+                if (lastWasLower && !char.IsLower(ch))
+                {
+                    sb.Append("-");
+                }
+
+                lastWasLower = char.IsLower(ch);
+                sb.Append(char.ToLowerInvariant(ch));
+            }
+
+            return sb.ToString();
+        }
+
+        private static Command? CreateSpecialCommand(Mode mode, Arguments arguments)
+        {
+            Command command = null;
+            var name = ProcessCommandName(mode);
+            if (mode == Mode.GetLocation)
+            {
+                command = CliModel.Bind<Arguments>(
+                    new Command(name),
+                    m =>
+                    {
+                        return arguments;
+                    },
+                    async a =>
+                    {
+                        Console.WriteLine(Assembly.GetExecutingAssembly().Location);
+                        return 0;
+                    });
+            }
+            else if (mode == Mode.Codex || mode == Mode.Cli)
+            {
+                command = CliModel.Bind<Arguments>(
+                    new Command(name),
+                    m =>
+                    {
+                        if (mode == Mode.Codex)
+                        {
+                            m.Option(c => ref c.RunCodexInproc, "in-proc-codex", description: "Run codex in-proc instead of as external process", defaultValue: true, isHidden: true);
+                        }
+
+                        m.Argument(c => ref c.CommandLine, "command-line", arity: ArgumentArity.ZeroOrMore);
+                        return arguments;
+                    },
+                    async a =>
+                    {
+                        if (mode == Mode.Codex)
+                        {
+                            a.RunCodexProcess(arguments.CodexExePath, new ArgList(arguments.CommandLine).ToString(), exitCode: new(out var exitCode));
+                            return exitCode;
+                        }
+                        else
+                        {
+                            return await new CliProgram().RunAsync(a.CommandLine);
+                        }
+                    });
+            }
+
+            return command;
+        }
+
+        [CollectionBuilder(typeof(ConfiguredCommandLineArgs), nameof(Create))]
+        public record struct ConfiguredCommandLineArgs(params string[] Arguments) : IEnumerable<string>
+        {
+            public static ConfiguredCommandLineArgs Create(ReadOnlySpan<string> items) => new(items.ToArray());
+
+            public bool UseExceptionHandler { get; set; } = true;
+
+            public static implicit operator ConfiguredCommandLineArgs(string[] args) => new(args);
+
+            public static implicit operator string[](ConfiguredCommandLineArgs args) => args.Arguments;
+
+            public IEnumerator<string> GetEnumerator()
+            {
+                return Arguments.AsEnumerable().GetEnumerator();
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+        }
+
+        internal static bool RunMode(Mode mode, Arguments arguments, AsyncOut<int> exitCode)
+        {
+            string codexBinDirectory = arguments.CodexBinDir;
+            string executablePath = arguments.CodexExePath;
 
             bool success = true;
-            if (string.IsNullOrEmpty(arguments.RepoName))
-            {
-                arguments.RepoName = GetRepoName(arguments);
-            }
-            else if (string.IsNullOrEmpty(arguments.CodexRepoUrl))
-            {
-                if (arguments.RepoUri != null 
-                    || SourceControlUri.TryParse(arguments.RepoName, out arguments.RepoUri, checkRepoNameFormat: true))
-                {
-                    arguments.CodexRepoUrl = arguments.RepoUri.GetUrl();
-                }
-            }
-
-            if (HasModeFlag(mode, Mode.BuildOnly))
+            if (HasFlag(mode, Mode.BuildOnly))
             {
                 UpdateBuildNumber(arguments);
             }
+
+            arguments.CodexOutputRoot = Path.GetFullPath(arguments.CodexOutputRoot ?? "");
 
             if (!string.IsNullOrEmpty(arguments.CodexOutputRoot)
                 && string.IsNullOrEmpty(arguments.SourcesDirectory))
@@ -121,19 +244,17 @@ namespace Codex.Automation.Workflow
                 arguments.SourcesDirectory = Path.Combine(arguments.CodexOutputRoot, "src");
             }
 
-            arguments.CodexOutputRoot ??= "";
-
             if (!arguments.NoBuildTag && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RELEASE_RELEASENAME")))
             {
                 Console.WriteLine($"##vso[build.addbuildtag]{BuildTags.CodexEnabled}");
                 Console.WriteLine($"##vso[build.addbuildtag]{BuildTags.FormatVersion}");
 
-                if (HasModeFlag(mode, Mode.IndexOnly))
+                if (HasFlag(mode, Mode.IndexOnly))
                 {
                     Console.WriteLine($"##vso[build.addbuildtag]{BuildTags.CodexIndexEnabled}");
                 }
 
-                if (SourceControlUri.TryParse(arguments.CodexRepoUrl, out var uri))
+                if (SourceControlUri.TryParse(arguments.RepoSpec, out var uri))
                 {
                     Console.WriteLine($"##vso[build.addbuildtag]{uri.GetBuildTag()}");
                 }
@@ -164,9 +285,9 @@ namespace Codex.Automation.Workflow
                 "ProjectData",
                 "--path",
                 arguments.Settings?.RepoRoot ?? arguments.SourcesDirectory,
-                "--name",
-                arguments.RepoUri?.GetRepoName() ?? arguments.RepoName ?? "unknown",
             };
+
+            arguments.ProjectDataArgs.Add(arguments.ExplicitRepoName?.Then(n => new string[] { "--name", n }) ?? []);
 
             string analysisOutputDirectory = (arguments.AnalyzeOutputDirectory ??= createOutDir("store"));
             string indexOutputDirectory = (arguments.IngestOutputDirectory ??= createOutDir("index"));
@@ -174,7 +295,7 @@ namespace Codex.Automation.Workflow
 
             var envMap = arguments.GetEnvMap();
 
-            if (arguments.RepoConfigRoot is string repoConfigRoot 
+            if (arguments.RepoConfigRoot is string repoConfigRoot
                 && (File.Exists(Out.Var(out var analysisSettingsPath, Path.Combine(repoConfigRoot, $"{arguments.Qualifier}.analyze.settings.json")))
                 || File.Exists(Out.Var(out analysisSettingsPath, Path.Combine(repoConfigRoot, "analyze.settings.json")))))
             {
@@ -221,7 +342,7 @@ namespace Codex.Automation.Workflow
                     .Concat(arguments.AdditionalIndexArguments)
                     .Select(s => envMap.ReplaceTokens(s))));
 
-            if (HasModeFlag(mode, Mode.Prepare))
+            if (HasFlag(mode, Mode.Prepare))
             {
                 // download files
                 Console.WriteLine($"##vso[task.setvariable variable=CodexBinDir;]{codexBinDirectory}");
@@ -235,14 +356,7 @@ namespace Codex.Automation.Workflow
                 }
             }
 
-            if (HasModeFlag(mode, Mode.GC))
-            {
-                // run exe
-                var gcArguments = $"gc --es {arguments.ElasticSearchUrl}";
-                success &= RunCodexProcess(executablePath, gcArguments, exitCode);
-            }
-
-            if (HasModeFlag(mode, Mode.BuildOnly))
+            if (HasFlag(mode, Mode.BuildOnly))
             {
                 var analysisPreparation = new AnalysisPreparation(arguments);
                 analysisPreparation.Run();
@@ -256,15 +370,15 @@ namespace Codex.Automation.Workflow
                 UpdateBuildNumber(arguments);
             }
 
-            if (HasModeFlag(mode, Mode.AnalyzeOnly))
+            if (HasFlag(mode, Mode.AnalyzeOnly))
             {
                 Directory.CreateDirectory(arguments.ProjectDataDir);
 
                 // run exe
-                success &= RunCodexProcess(executablePath, analysisArguments, exitCode);
+                success &= arguments.RunCodexProcess(executablePath, analysisArguments, exitCode);
             }
 
-            if (HasModeFlag(mode, Mode.IndexOnly))
+            if (HasFlag(mode, Mode.IndexOnly))
             {
                 // run exe
                 if (!string.IsNullOrEmpty(arguments.CodexOutputRoot))
@@ -272,13 +386,13 @@ namespace Codex.Automation.Workflow
                     Directory.CreateDirectory(arguments.CodexOutputRoot);
                 }
 
-                success &= RunCodexProcess(executablePath, indexArguments, exitCode);
+                success &= arguments.RunCodexProcess(executablePath, indexArguments, exitCode);
             }
 
-            if (HasModeFlag(mode, Mode.UploadOnly))
+            if (HasFlag(mode, Mode.UploadOnly))
             {
                 foreach (var (directory, _outputName) in new[] {
-                    (analysisOutputDirectory, BuildAnalysisArtifactName), 
+                    (analysisOutputDirectory, BuildAnalysisArtifactName),
                     (indexOutputDirectory, BuildIndexArtifactName),
                     (arguments.DebugDir, "DebugDir")})
                 {
@@ -304,7 +418,7 @@ namespace Codex.Automation.Workflow
                             password: arguments.EncryptOutputs ? SdkFeatures.DefaultZipStorePassword : (string)null,
                             publicKey: arguments.EncryptOutputs ? SdkFeatures.DefaultZipStorePasswordPublicKey : (string)null);
 
-                        if (HasModeFlag(mode, Mode.Test))
+                        if (HasFlag(mode, Mode.Test))
                         {
                             outputName += "Test";
                         }
@@ -336,7 +450,7 @@ namespace Codex.Automation.Workflow
                 }
             }
 
-            if (HasModeFlag(mode, Mode.Ingest))
+            if (HasFlag(mode, Mode.Ingest))
             {
 
             }
@@ -355,31 +469,6 @@ namespace Codex.Automation.Workflow
                 Console.WriteLine(
                     $"##vso[build.updatebuildnumber]{buildNumber}");
             }
-        }
-
-        private static string GetRepoName(Arguments arguments)
-        {
-            var repoName = arguments.CodexRepoUrl;
-
-            if (!string.IsNullOrEmpty(repoName))
-            {
-                if (arguments.RepoUri != null || SourceControlUri.TryParse(repoName, out arguments.RepoUri))
-                {
-                    repoName = arguments.RepoUri.GetRepoName().Replace('/', '_');
-                    arguments.CodexRepoUrl = arguments.RepoUri.GetUrl();
-                }
-                else
-                {
-                    repoName = repoName.TrimEnd('/');
-                    var lastSlashIndex = repoName.LastIndexOf('/');
-                    if (lastSlashIndex > 0)
-                    {
-                        repoName = repoName.Substring(lastSlashIndex + 1);
-                    }
-                }
-            }
-
-            return repoName;
         }
     }
 }

@@ -20,6 +20,8 @@ public class StoredFilterConfiguration
 
     public HashSet<string> IncludedTypes { get; set; }
 
+    public string? Alias { get; set; }
+
     public IAsyncObjectStorage StoredFilterStorage { get; set; }
 
     public static implicit operator StoredFilterConfiguration(LuceneWriteConfiguration configuration)
@@ -27,7 +29,8 @@ public class StoredFilterConfiguration
         return new StoredFilterConfiguration()
         {
             PrefilterMode = configuration.PrefilterMode,
-            IncludedTypes = configuration.IncludedTypes
+            IncludedTypes = configuration.IncludedTypes,
+            Alias = configuration.Alias,
         };
     }
 }
@@ -67,7 +70,7 @@ public record StoredFilterBuilder(
         if (Configuration.IsPrefiltering || StoredFilterUpdater == null) return;
 
         await StoredFilterUpdater.UpdateRepoAsync(
-            repoName: StoreInfo.Commit.Alias ?? StoreInfo.Repository.Name,
+            repoName: Configuration.Alias ?? StoreInfo.Repository.Name,
             GetFilter());
     }
 

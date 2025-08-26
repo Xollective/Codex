@@ -40,9 +40,6 @@ namespace Codex.Utilities
         }
     }
 
-    public delegate ref TRef RefFunc<TRef>();
-    public delegate ref TRef RefFunc<T, TRef>(T arg0);
-
     /// <summary>
     /// Helper methods for <see cref="AsyncRef{T}"/>
     /// </summary>
