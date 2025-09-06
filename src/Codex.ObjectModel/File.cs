@@ -256,6 +256,11 @@ namespace Codex.ObjectModel
         [SearchBehavior(SearchBehavior.Term)]
         int Id { get; }
 
+        /// <summary>
+        /// The chunk index
+        /// </summary>
+        int Index { get; }
+
         int StartLineNumber { get; }
     }
 

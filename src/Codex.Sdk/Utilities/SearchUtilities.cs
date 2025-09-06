@@ -6,39 +6,44 @@ namespace Codex.Search
     {
         private static readonly Regex GenericTypeArgumentsRegex = new Regex(@"<[\w\s,]*>?");
         private static readonly char[] QualifiedNameSeparators = new char[] { '.', '/', '\\' };
+        private static readonly char[] PathSeparators = new char[] { '/', '\\' };
 
-        public static IEnumerable<string> EnumerateContainerQualifiedNameFieldValues(string value)
+        public static IEnumerable<string> EnumerateContainerQualifiedNameFieldValues(string value, bool path = false)
         {
-            foreach (var item in EnumerateContainerQualifiedNameUnhashedFieldValues(value))
+            foreach (var item in EnumerateContainerQualifiedNameUnhashedFieldValues(value, path))
             {
-                string result = GetHashedQualifiedNameValue(item);
+                string result = GetHashedQualifiedNameValue(item, path);
                 yield return result;
             }
         }
 
-        public static string GetHashedQualifiedNameValue(string item)
+        public static string GetHashedQualifiedNameValue(string item, bool path = false)
         {
-            var typeArgSpecifierIndex = item.IndexOf('`');
             ReadOnlySpan<char> hashedPortion = item;
             var suffix = string.Empty;
-            if (typeArgSpecifierIndex > 0)
+            if (!path)
             {
-                hashedPortion = hashedPortion.Slice(0, typeArgSpecifierIndex);
-                suffix = item.Substring(typeArgSpecifierIndex);
+                var typeArgSpecifierIndex = item.IndexOf('`');
+                if (typeArgSpecifierIndex > 0)
+                {
+                    hashedPortion = hashedPortion.Slice(0, typeArgSpecifierIndex);
+                    suffix = item.Substring(typeArgSpecifierIndex);
+                }
             }
 
             var result = IndexingUtilities.ComputeSymbolUid(hashedPortion) + suffix;
             return result;
         }
 
-        public static IEnumerable<string> EnumerateContainerQualifiedNameUnhashedFieldValues(string value)
+        public static IEnumerable<string> EnumerateContainerQualifiedNameUnhashedFieldValues(string value, bool path = false)
         {
             value = GetNameTransformedValue(value);
+            var separators = path ? PathSeparators : QualifiedNameSeparators;
             while (!string.IsNullOrEmpty(value))
             {
                 yield return value;
 
-                var index = value.IndexOfAny(QualifiedNameSeparators);
+                var index = value.IndexOfAny(separators);
                 if (index > 0)
                 {
                     value = value.Substring(index + 1);

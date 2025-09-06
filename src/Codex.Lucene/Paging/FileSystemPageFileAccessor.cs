@@ -119,7 +119,7 @@ namespace Codex.Lucene.Search
         {
             var range = request.ExtractRange();
 
-            var fullUri = BaseAddress.Combine(request.RequestUri.WithoutQuery().ToString(), preserveBaseQuery: false);
+            var fullUri = BaseAddress.Combine(request.RequestUri.WithoutQueryString(), preserveBaseQuery: false);
 
             using var stream = await OpenStreamCoreAsync(
                 fullUri.AbsolutePath,

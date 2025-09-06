@@ -64,12 +64,12 @@ namespace Codex.ObjectModel
             .SearchField(s => s.Definition.ContainerQualifiedName, SearchBehavior.PrefixFullName)
 
             .SetShouldExclude(s => s.Definition.ExcludeFromSearch || s.ExtendedSearchInfo != null)
-            .SearchField(s => s.Definition.Kind, SearchBehavior.Sortword, configure: s => s.BehaviorInfo = s.BehaviorInfo with { LowCardinalityTermOptimization = true })
+            .SearchField(s => s.Definition.Kind, SearchBehavior.Sortword, configure: s => s.BehaviorInfo = s.BehaviorInfo with { Flags = s.BehaviorInfo.Flags | SearchBehaviorFlags.LowCardinalityTermOptimization })
             .SearchField(s => s.Definition.ShortName, SearchBehavior.PrefixShortName)
             .SearchField(s => s.Definition.AbbreviatedName, SearchBehavior.PrefixTerm)
             .SearchNamedField(s => s.Definition.ExtensionInfo?.ContainerQualifiedName, SearchBehavior.PrefixFullName, "ExtensionContainerQualifiedName")
             .SearchMultiField(s => s.Definition.Modifiers, SearchBehavior.NormalizedKeyword)
-            .SearchMultiField(s => s.Definition.Keywords, SearchBehavior.NormalizedKeyword, configure: s => s.BehaviorInfo = s.BehaviorInfo with { LowCardinalityTermOptimization = true })
+            .SearchMultiField(s => s.Definition.Keywords, SearchBehavior.NormalizedKeyword, configure: s => s.BehaviorInfo = s.BehaviorInfo with { Flags = s.BehaviorInfo.Flags | SearchBehaviorFlags.LowCardinalityTermOptimization })
             ;
         //.CopyTo(ds => ds.Definition.Modifiers, ds => ds.Keywords)
         //.CopyTo(ds => ds.Definition.Kind, ds => ds.Kind)
@@ -85,7 +85,8 @@ namespace Codex.ObjectModel
             .Route(rs => rs.Symbol.Id.Value)
             .SearchField(s => s.FileInfo.RepositoryName, SearchBehavior.Sortword)
             .SearchField(s => s.FileInfo.ProjectId, SearchBehavior.Sortword, "ReferencingProjectId")
-            .SearchField(s => s.FileInfo.ProjectRelativePath, SearchBehavior.None)
+            .SearchField(s => s.FileInfo.ProjectRelativePath, SearchBehavior.PrefixFullName)
+            .SearchField(s => s.FileInfo.ProjectRelativePath.Extension, SearchBehavior.NormalizedKeyword)
             .SearchField(s => s.Symbol.ProjectId, SearchBehavior.NormalizedKeyword)
             .SearchField(s => s.Symbol.Id, SearchBehavior.NormalizedKeyword)
             .MarkForRemoval("Do we need a primary reference kind for sorting?")
@@ -107,13 +108,15 @@ namespace Codex.ObjectModel
             .WithObjectPath(ObjectPaths.GetPath)
             //.ExternalLink(ITextSourceSearchModel.GetExternalLink)
             .SearchField(s => s.Chunk.Id, SearchBehavior.Term, "ChunkId")
+            .SearchField(s => s.Chunk.Index, SearchBehavior.SortValue)
+            .SearchField(s => s.File.RepositoryName, SearchBehavior.Sortword)
+            .SearchField(s => s.File.ProjectId, SearchBehavior.Sortword)
+            .SearchField(s => s.File.ProjectRelativePath, SearchBehavior.PrefixFullName)
+            .SearchField(s => s.File.ProjectRelativePath.Extension, SearchBehavior.NormalizedKeyword)
 
             // Add file location fields with SearchBehavior.None so they are included
             // for index hash, but not actually indexed
-            .SearchField(s => s.Chunk.StartLineNumber, SearchBehavior.None)
-            .SearchField(s => s.File.RepositoryName, SearchBehavior.None)
-            .SearchField(s => s.File.ProjectId, SearchBehavior.None)
-            .SearchField(s => s.File.ProjectRelativePath, SearchBehavior.None)
+            //.SearchField(s => s.File.RepositoryName, SearchBehavior.None)
             ;
         //.CopyTo(ss => ss.File.SourceFile.Content, ss => ss.Content)
         //.CopyTo(ss => ss.File.SourceFile.Info.RepoRelativePath, ss => ss.RepoRelativePath)

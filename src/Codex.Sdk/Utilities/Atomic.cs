@@ -161,6 +161,15 @@ namespace Codex.Utilities
             }
         }
 
+        public static void Max(ref long location, long value)
+        {
+            while (Out.TrueVar(out var current, location)
+                && value > current
+                && !TryCompareExchange(ref location, value, current))
+            {
+            }
+        }
+
         public static int InterlockedIncrement(this ref int location) => Interlocked.Increment(ref location);
         public static int InterlockedDecrement(this ref int location) => Interlocked.Decrement(ref location);
         public static int InterlockedAdd(this ref int location, int value) => Interlocked.Add(ref location, value);

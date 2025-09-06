@@ -125,7 +125,7 @@ namespace Codex.Web.Mvc.Rendering
 
         private TreeNodeViewModel CreateFileHierarchyNodes(TreeNodeViewModel rootContainer)
         {
-            var glyph = projectContents.PrimaryFile?.ProjectRelativePath?.EndsWithIgnoreCase(".vbproj") == true
+            var glyph = projectContents.PrimaryFile?.ProjectRelativePath.Path?.EndsWithIgnoreCase(".vbproj") == true
                 ? Glyph.BasicProject
                 : Glyph.CSharpProject;
 
@@ -133,8 +133,8 @@ namespace Codex.Web.Mvc.Rendering
 
             foreach (var file in projectContents.Files)
             {
-                var parts = file.ProjectRelativePath.Split('\\');
-                AddDocumentToFolder(root, file, parts.Take(parts.Length - 1).ToArray());
+                var parts = file.ProjectRelativePath.Split();
+                AddDocumentToFolder(root, file, parts.AsSpan().Slice(0, parts.Length - 1));
             }
 
             root.Sort((l, r) => StringComparer.OrdinalIgnoreCase.Compare(l.Name, r.Name));

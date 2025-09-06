@@ -129,7 +129,9 @@
     "CompressedSpans": 126,
     "TextSpan": 127,
     "Chunk": 128,
-    "ExpirationUtc": 129
+    "ExpirationUtc": 129,
+    "Memory": 130,
+    "Index": 131
   },
   "SortedEntityPropertyNames": {
     "AbbreviatedName": 56,
@@ -195,6 +197,7 @@
     "HeadCommitId": 27,
     "Header": 84,
     "Id": 33,
+    "Index": 131,
     "Info": 31,
     "IsAdded": 18,
     "IsImplicitlyDeclared": 100,
@@ -213,6 +216,7 @@
     "LineSpanStart": 80,
     "LineSpanText": 86,
     "LocalGroupId": 39,
+    "Memory": 130,
     "Modifiers": 64,
     "Name": 28,
     "OwnerId": 93,
@@ -648,21 +652,8 @@
         "OutliningRegionStart": 90,
         "OutliningRegionEnd": 91,
         "RoslynTestCode": 92,
-        "RoslynTestCodeMarkdown": 93
-      }
-    },
-    "Codex.ObjectModel.Attributes.SearchBehavior": {
-      "FieldNames": {
-        "None": 0,
-        "Term": 1,
-        "NormalizedKeyword": 2,
-        "Sortword": 3,
-        "HierarchicalPath": 4,
-        "FullText": 5,
-        "PrefixTerm": 6,
-        "PrefixShortName": 7,
-        "PrefixFullName": 8,
-        "SortValue": 9
+        "RoslynTestCodeMarkdown": 93,
+        "ObsoleteSymbol": 94
       }
     },
     "Codex.ObjectModel.Attributes.DataInclusionOptions": {

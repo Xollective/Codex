@@ -239,6 +239,8 @@ namespace Codex.ObjectModel.Implementation
             public static ISortField<IReferenceSearchModel, int> StableId { get; } = Codex.ObjectModel.SearchTypes.Reference.GetMappingField<int>();
             public static ISortField<IReferenceSearchModel, string> RepositoryName { get; } = Codex.ObjectModel.SearchTypes.Reference.GetMappingField<string>();
             public static ISortField<IReferenceSearchModel, string> ReferencingProjectId { get; } = Codex.ObjectModel.SearchTypes.Reference.GetMappingField<string>();
+            public static IMappingField<IReferenceSearchModel, string> ProjectRelativePath { get; } = Codex.ObjectModel.SearchTypes.Reference.GetMappingField<string>();
+            public static IMappingField<IReferenceSearchModel, string> Extension { get; } = Codex.ObjectModel.SearchTypes.Reference.GetMappingField<string>();
             public static IMappingField<IReferenceSearchModel, string> ProjectId { get; } = Codex.ObjectModel.SearchTypes.Reference.GetMappingField<string>();
             public static IMappingField<IReferenceSearchModel, string> Id { get; } = Codex.ObjectModel.SearchTypes.Reference.GetMappingField<string>();
             public static ISortField<IReferenceSearchModel, int> Rank { get; } = Codex.ObjectModel.SearchTypes.Reference.GetMappingField<int>();
@@ -272,6 +274,11 @@ namespace Codex.ObjectModel.Implementation
             public static IMappingField<ITextSourceSearchModel, string> StoredFilterTag { get; } = Codex.ObjectModel.SearchTypes.TextSource.GetMappingField<string>();
             public static ISortField<ITextSourceSearchModel, int> StableId { get; } = Codex.ObjectModel.SearchTypes.TextSource.GetMappingField<int>();
             public static IMappingField<ITextSourceSearchModel, int> ChunkId { get; } = Codex.ObjectModel.SearchTypes.TextSource.GetMappingField<int>();
+            public static ISortField<ITextSourceSearchModel, int> Index { get; } = Codex.ObjectModel.SearchTypes.TextSource.GetMappingField<int>();
+            public static ISortField<ITextSourceSearchModel, string> RepositoryName { get; } = Codex.ObjectModel.SearchTypes.TextSource.GetMappingField<string>();
+            public static ISortField<ITextSourceSearchModel, string> ProjectId { get; } = Codex.ObjectModel.SearchTypes.TextSource.GetMappingField<string>();
+            public static IMappingField<ITextSourceSearchModel, string> ProjectRelativePath { get; } = Codex.ObjectModel.SearchTypes.TextSource.GetMappingField<string>();
+            public static IMappingField<ITextSourceSearchModel, string> Extension { get; } = Codex.ObjectModel.SearchTypes.TextSource.GetMappingField<string>();
         }
     }
 
@@ -537,6 +544,7 @@ namespace Codex.ObjectModel.Implementation
         }
 
         public int Id { get; set; }
+        public int Index { get; set; }
         public int StartLineNumber { get; set; }
     }
 
@@ -681,7 +689,6 @@ namespace Codex.ObjectModel.Implementation
             return new CommitInfo();
         }
 
-        public string Alias { get; set; }
         public string BuildUri { get; set; }
         public DateTime DateCommitted { get; set; }
         public DateTime DateUploaded { get; set; }
@@ -1408,7 +1415,7 @@ namespace Codex.ObjectModel.Implementation
             return new ProjectFileScopeEntity();
         }
 
-        public string ProjectRelativePath { get; set; }
+        public NormalizedPath ProjectRelativePath { get; set; }
         public string ProjectId { get; set; }
     }
 
@@ -2361,7 +2368,7 @@ namespace Codex.ObjectModel.Implementation
         }
 
         public RepoAccess Access { get; set; }
-        public bool ExplicitGroupsOnly { get; set; }
+        public Nullable<bool> ExplicitGroupsOnly { get; set; }
         public ImmutableSortedSet<string> Groups { get; set; } = System.Collections.Immutable.ImmutableSortedSet<string>.Empty;
     }
 
@@ -3471,9 +3478,10 @@ namespace Codex.ObjectModel.Implementation
         public partial class ChunkReferenceDescriptor : SingletonDescriptorBase<ChunkReference, IChunkReference, ChunkReferenceDescriptor>, ICreate<ChunkReferenceDescriptor>
         {
             static ChunkReferenceDescriptor ICreate<ChunkReferenceDescriptor>.Create() => new ChunkReferenceDescriptor();
-            ChunkReferenceDescriptor() : base(34, 2)
+            ChunkReferenceDescriptor() : base(131, 3)
             {
                 Add(new Property<int, int>(33, "Id", e => e.Id, (e, v) => e.Id = v));
+                Add(new Property<int, int>(131, "Index", e => e.Index, (e, v) => e.Index = v));
                 Add(new Property<int, int>(34, "StartLineNumber", e => e.StartLineNumber, (e, v) => e.StartLineNumber = v));
             }
         }
@@ -3517,9 +3525,8 @@ namespace Codex.ObjectModel.Implementation
         public partial class CommitDescriptor : SingletonDescriptorBase<Commit, ICommit, CommitDescriptor>, ICreate<CommitDescriptor>
         {
             static CommitDescriptor ICreate<CommitDescriptor>.Create() => new CommitDescriptor();
-            CommitDescriptor() : base(49, 8)
+            CommitDescriptor() : base(49, 7)
             {
-                Add(new Property<string, string>(45, "Alias", e => e.Alias, (e, v) => e.Alias = v));
                 Add(new Property<string, string>(46, "BuildUri", e => e.BuildUri, (e, v) => e.BuildUri = v));
                 Add(new Property<string, string>(44, "CommitId", e => e.CommitId, (e, v) => e.CommitId = v));
                 Add(new Property<DateTime, DateTime>(47, "DateCommitted", e => e.DateCommitted, (e, v) => e.DateCommitted = v));
@@ -3533,9 +3540,8 @@ namespace Codex.ObjectModel.Implementation
         public partial class CommitInfoDescriptor : SingletonDescriptorBase<CommitInfo, ICommitInfo, CommitInfoDescriptor>, ICreate<CommitInfoDescriptor>
         {
             static CommitInfoDescriptor ICreate<CommitInfoDescriptor>.Create() => new CommitInfoDescriptor();
-            CommitInfoDescriptor() : base(48, 6)
+            CommitInfoDescriptor() : base(48, 5)
             {
-                Add(new Property<string, string>(45, "Alias", e => e.Alias, (e, v) => e.Alias = v));
                 Add(new Property<string, string>(46, "BuildUri", e => e.BuildUri, (e, v) => e.BuildUri = v));
                 Add(new Property<string, string>(44, "CommitId", e => e.CommitId, (e, v) => e.CommitId = v));
                 Add(new Property<DateTime, DateTime>(47, "DateCommitted", e => e.DateCommitted, (e, v) => e.DateCommitted = v));
@@ -3823,7 +3829,7 @@ namespace Codex.ObjectModel.Implementation
             {
                 Add(new Property<string, string>(89, "FileId", e => e.FileId, (e, v) => e.FileId = v));
                 Add(new Property<string, string>(1, "ProjectId", e => e.ProjectId, (e, v) => e.ProjectId = v));
-                Add(new Property<string, string>(88, "ProjectRelativePath", e => e.ProjectRelativePath, (e, v) => e.ProjectRelativePath = v));
+                Add(new Property<NormalizedPath, NormalizedPath>(88, "ProjectRelativePath", e => e.ProjectRelativePath, (e, v) => e.ProjectRelativePath = v));
                 Add(new Property<string, string>(87, "RepoRelativePath", e => e.RepoRelativePath, (e, v) => e.RepoRelativePath = v));
                 Add(new Property<string, string>(0, "RepositoryName", e => e.RepositoryName, (e, v) => e.RepositoryName = v));
             }
@@ -3835,7 +3841,7 @@ namespace Codex.ObjectModel.Implementation
             ProjectFileScopeEntityDescriptor() : base(88, 4)
             {
                 Add(new Property<string, string>(1, "ProjectId", e => e.ProjectId, (e, v) => e.ProjectId = v));
-                Add(new Property<string, string>(88, "ProjectRelativePath", e => e.ProjectRelativePath, (e, v) => e.ProjectRelativePath = v));
+                Add(new Property<NormalizedPath, NormalizedPath>(88, "ProjectRelativePath", e => e.ProjectRelativePath, (e, v) => e.ProjectRelativePath = v));
                 Add(new Property<string, string>(87, "RepoRelativePath", e => e.RepoRelativePath, (e, v) => e.RepoRelativePath = v));
                 Add(new Property<string, string>(0, "RepositoryName", e => e.RepositoryName, (e, v) => e.RepositoryName = v));
             }
@@ -4146,7 +4152,7 @@ namespace Codex.ObjectModel.Implementation
                 Add(new Property<string, string>(76, "Language", e => e.Language, (e, v) => e.Language = v));
                 Add(new Property<int, int>(107, "Lines", e => e.Lines, (e, v) => e.Lines = v));
                 Add(new Property<string, string>(1, "ProjectId", e => e.ProjectId, (e, v) => e.ProjectId = v));
-                Add(new Property<string, string>(88, "ProjectRelativePath", e => e.ProjectRelativePath, (e, v) => e.ProjectRelativePath = v));
+                Add(new Property<NormalizedPath, NormalizedPath>(88, "ProjectRelativePath", e => e.ProjectRelativePath, (e, v) => e.ProjectRelativePath = v));
                 Add(new Property<PropertyMap, IPropertyMap>(5, "Properties", e => e.Properties, (e, v) => e.Properties = v));
                 Add(new Property<string, string>(10, "Qualifier", e => e.Qualifier, (e, v) => e.Qualifier = v));
                 Add(new Property<string, string>(87, "RepoRelativePath", e => e.RepoRelativePath, (e, v) => e.RepoRelativePath = v));
@@ -4245,7 +4251,7 @@ namespace Codex.ObjectModel.Implementation
             StoredRepositorySettingsDescriptor() : base(125, 3)
             {
                 Add(new Property<RepoAccess, RepoAccess>(124, "Access", e => e.Access, (e, v) => e.Access = v));
-                Add(new Property<bool, bool>(125, "ExplicitGroupsOnly", e => e.ExplicitGroupsOnly, (e, v) => e.ExplicitGroupsOnly = v));
+                Add(new Property<Nullable<bool>, Nullable<bool>>(125, "ExplicitGroupsOnly", e => e.ExplicitGroupsOnly, (e, v) => e.ExplicitGroupsOnly = v));
                 Add(new Property<ImmutableSortedSet<string>, ImmutableSortedSet<string>>(73, "Groups", e => e.Groups, (e, v) => e.Groups = v));
             }
         }

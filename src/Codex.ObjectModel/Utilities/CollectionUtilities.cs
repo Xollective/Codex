@@ -21,6 +21,12 @@ namespace Codex.Utilities
             return new(array.Array, pool);
         }
 
+        public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T> items)
+            where T : class
+        {
+            return items.Where(s => s != null);
+        }
+
         public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items, HashSet<T> visited)
         {
             return DistinctBy(items, static t => t, visited);

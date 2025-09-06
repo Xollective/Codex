@@ -25,6 +25,8 @@ namespace Codex
 
         public static readonly FeatureSwitch<int?> IngestParallelism = default(int?);
 
+        public static readonly FeatureSwitch<int?> IngestGcInterval = 5000;
+
         public static readonly FeatureSwitch<Func<string, bool>> CanReadFilter = new();
 
         // For unit testing purposes only to capture the http client used to query index files

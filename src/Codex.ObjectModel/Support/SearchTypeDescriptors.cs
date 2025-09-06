@@ -38,7 +38,7 @@ namespace Codex
 
         public SearchField this[string fieldName] => Fields[fieldName];
 
-        public static SearchType<T> Create<T>(List<SearchType> registeredSearchTypes, SearchTypeId? explicitTypeId = null, [CallerMemberName]string name = null)
+        public static SearchType<T> Create<T>(List<SearchType> registeredSearchTypes, SearchTypeId? explicitTypeId = null, [CallerMemberName] string name = null)
             where T : class, ISearchEntity
         {
             var searchType = new SearchType<T>(name);
@@ -75,13 +75,13 @@ namespace Codex
 
         public SearchField ExcludeFromHash()
         {
-            BehaviorInfo = BehaviorInfo with { IsHashExcluded = true };
+            BehaviorInfo = BehaviorInfo with { Flags = BehaviorInfo.Flags | SearchBehaviorFlags.IsHashExcluded };
             return this;
         }
     }
 
     public abstract record SearchFieldBase<TSearchType, TFieldType>(string Name, SearchBehavior Behavior)
-        : SearchField(Name, Behavior, typeof(TFieldType)), 
+        : SearchField(Name, Behavior, typeof(TFieldType)),
             IMappingField<TSearchType, TFieldType>,
             ISortField<TSearchType, TFieldType>
     {
@@ -183,8 +183,7 @@ namespace Codex
             //SearchField(s => s.EntityContentSize, SearchBehavior.Term);
             SearchField(s => s.StableId, SearchBehavior.SortValue, configure: s => s.BehaviorInfo = s.BehaviorInfo with
             {
-                IsHashExcluded = true,
-                IsStableId = true
+                Flags = s.BehaviorInfo.Flags | SearchBehaviorFlags.IsHashExcluded | SearchBehaviorFlags.IsStableId
             });
             //SearchField(s => s.SnapshotId, SearchBehavior.Sortword);
 
@@ -266,11 +265,22 @@ namespace Codex
         {
             if (TypeSystemHelpers.Is<Func<TSearchType, T>, Func<TSearchType, SymbolId>>(searchField, searchSymbolField =>
             {
-
                 Func<TSearchType, string> searchField = s => searchSymbolField(s).Value;
                 SearchNamedFieldCore(searchField, behavior, name, configure: f =>
                 {
-                    f.BehaviorInfo = f.BehaviorInfo with { PreferBinary = true, IsSymbolId = true };
+                    f.BehaviorInfo = f.BehaviorInfo with
+                    {
+                        Flags = f.BehaviorInfo.Flags | SearchBehaviorFlags.PreferBinary | SearchBehaviorFlags.IsSymbolId
+                    };
+                    configure?.Invoke(f);
+                }, isValid);
+            })
+            || TypeSystemHelpers.Is<Func<TSearchType, T>, Func<TSearchType, NormalizedPath>>(searchField, retypedSearchField =>
+            {
+                Func<TSearchType, string> searchField = s => retypedSearchField(s).Path?.ToLowerInvariant();
+                SearchNamedFieldCore(searchField, behavior, name, configure: f =>
+                {
+                    f.BehaviorInfo = f.BehaviorInfo with { Flags = f.BehaviorInfo.Flags | SearchBehaviorFlags.IsPath };
                     configure?.Invoke(f);
                 }, isValid);
             }))
@@ -348,7 +358,7 @@ namespace Codex
             return this;
         }
 
-        public SearchFieldBase<TSearchType, TFieldType> GetMappingField<TFieldType>([CallerMemberName]string name = null)
+        public SearchFieldBase<TSearchType, TFieldType> GetMappingField<TFieldType>([CallerMemberName] string name = null)
         {
             return (SearchFieldBase<TSearchType, TFieldType>)this[name];
         }
