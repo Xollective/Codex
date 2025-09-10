@@ -43,6 +43,11 @@ namespace Codex
             filePath = Path.Combine(RootDirectory, filePath);
             return base.PreparePath(filePath);
         }
+
+        public override string ToString()
+        {
+            return $"{RootDirectory}({SearchPattern})";
+        }
     }
 
     public class FlattenDirectoryFileSystem : DirectoryFileSystem

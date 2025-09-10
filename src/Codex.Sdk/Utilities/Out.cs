@@ -84,7 +84,7 @@ namespace Codex.Utilities
 
         public static Out<T> Create<T>(ref T value) => new Out<T>(ref value, default);
 
-        public static void SetOrCreate<T>(this ref Out<T> box, in T value)
+        public static void SetOrCreate<T>(this ref Out<T> box, in T value = default)
         {
             if (box.IsValid)
             {
@@ -92,16 +92,18 @@ namespace Codex.Utilities
             }
             else
             {
-                box = Create(ref Unsafe.AsRef(value));
+                box = Create(ref Unsafe.AsRef(in value));
             }
         }
 
-        public static void Ensure<T>(this ref Out<T> box, in T value = default)
+        public static Out<T> Ensure<T>(this ref Out<T> box, in T value = default)
         {
             if (!box.IsValid)
             {
-                box = Create(ref Unsafe.AsRef(value));
+                box = Create(ref Unsafe.AsRef(in value));
             }
+
+            return box;
         }
 
         public static Ref<T> Ref<T>(out T value) => new Out<T>(out value).Ref;

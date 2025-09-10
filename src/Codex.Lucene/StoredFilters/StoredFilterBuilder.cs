@@ -30,7 +30,6 @@ public class StoredFilterConfiguration
         {
             PrefilterMode = configuration.PrefilterMode,
             IncludedTypes = configuration.IncludedTypes,
-            Alias = configuration.Alias,
         };
     }
 }
@@ -70,7 +69,7 @@ public record StoredFilterBuilder(
         if (Configuration.IsPrefiltering || StoredFilterUpdater == null) return;
 
         await StoredFilterUpdater.UpdateRepoAsync(
-            repoName: Configuration.Alias ?? StoreInfo.Repository.Name,
+            repoName: new(StoreInfo),
             GetFilter());
     }
 

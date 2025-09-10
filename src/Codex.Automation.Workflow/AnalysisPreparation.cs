@@ -38,6 +38,8 @@ namespace Codex.Automation.Workflow
 
         public void Run()
         {
+            var logger = SdkFeatures.GetGlobalLogger();
+
             bool sanitizeRemotes = false;
 
             bool useCommit = !string.IsNullOrEmpty(arguments.Commit);
@@ -108,7 +110,7 @@ namespace Codex.Automation.Workflow
 
             MiscUtilities.UpdateEnvironmentVariable("PATH", path =>
             {
-                Console.WriteLine(string.Join(Environment.NewLine, "Prior path:".AsSingle().Concat(path.Split(";"))));
+                logger?.LogDiagnostic(string.Join(Environment.NewLine, "Prior path:".AsSingle().Concat(path.Split(";"))));
                 var updatedPath = string.Join(";", arguments.Settings.PrependedPaths.Concat(
                     new[] { arguments.ToolsDir, path }).Select(Path.GetFullPath));
 
@@ -116,7 +118,7 @@ namespace Codex.Automation.Workflow
             });
 
             var updatedPath = Environment.GetEnvironmentVariable("PATH");
-            Console.WriteLine(string.Join(Environment.NewLine, "Updated path:".AsSingle().Concat(updatedPath.Split(";"))));
+            logger?.LogDiagnostic(string.Join(Environment.NewLine, "Updated path:".AsSingle().Concat(updatedPath.Split(";"))));
 
             // Disable nuget auditing
             Console.WriteLine("Disabling nuget auditing");
@@ -247,15 +249,15 @@ namespace Codex.Automation.Workflow
             // Start with top level traversal projects or solutions
             ("build.proj", SearchOption.TopDirectoryOnly),
             ("dirs.proj", SearchOption.TopDirectoryOnly),
-            ("*.sln", SearchOption.TopDirectoryOnly),
             ("*.xln", SearchOption.TopDirectoryOnly),
+            ("*.sln", SearchOption.TopDirectoryOnly),
             ("*.slnx", SearchOption.TopDirectoryOnly),
 
             // Next try top level traversal projects or solutions under src
             ("src/build.proj", SearchOption.TopDirectoryOnly),
             ("src/dirs.proj", SearchOption.TopDirectoryOnly),
-            ("src/*.sln", SearchOption.TopDirectoryOnly),
             ("src/*.xln", SearchOption.TopDirectoryOnly),
+            ("src/*.sln", SearchOption.TopDirectoryOnly),
             ("src/*.slnx", SearchOption.TopDirectoryOnly),
 
             // Loose project at root or under src/
@@ -263,8 +265,8 @@ namespace Codex.Automation.Workflow
             ("src/*.*proj", SearchOption.TopDirectoryOnly),
 
             // Solutions and traversal projects
-            ("*.sln", SearchOption.AllDirectories),
             ("*.xln", SearchOption.AllDirectories),
+            ("*.sln", SearchOption.AllDirectories),
             //("*.proj", SearchOption.AllDirectories),
             ("*.slnx", SearchOption.AllDirectories),
         };

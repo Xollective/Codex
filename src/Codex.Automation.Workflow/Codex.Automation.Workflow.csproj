@@ -12,6 +12,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>autocodex</ToolCommandName>
     <VersionPrefix>2.0.0</VersionPrefix>
+    <ServerGarbageCollection>True</ServerGarbageCollection>
   </PropertyGroup>
 
   <ItemGroup>

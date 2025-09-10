@@ -104,9 +104,17 @@ namespace Codex.Storage
                     definition.ExcludeFromDefaultSearch = true;
                 }
 
+                // Only allow declarations to add constant value search since we don't
+                // want conflicts to arise here that might be confusing for the user.
+                if (!declared && definition.ExtraSearchInfo?.ConstantValue != null)
+                {
+                    definition.ExtraSearchInfo.ConstantValue = null;
+                }
+
                 DefinitionSearchModel searchModel = new DefinitionSearchModel()
                 {
                     Definition = definition,
+                    ExtendedSearchInfo = definition.ExtraSearchInfo
                 };
                 await AddAsync(SearchTypes.Definition, searchModel,
                 // If definition is declared in this code base, add it to declared def filter for use when boosting or searching

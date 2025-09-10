@@ -165,6 +165,11 @@ namespace Codex
             return new FeatureScope(this, false, new(priorValue));
         }
 
+        public override string ToString()
+        {
+            return Value?.ToString();
+        }
+
         public static implicit operator T(FeatureSwitch<T> f)
         {
             return f.Value;

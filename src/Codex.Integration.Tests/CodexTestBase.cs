@@ -13,6 +13,7 @@ using Codex.Web.Common;
 using Codex.Web.Wasm;
 using Microsoft.Extensions.Configuration;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 using static Codex.Lucene.Search.PagingHelpers;
 
 namespace Codex.Integration.Tests;
@@ -36,17 +37,19 @@ public record CodexTestBase : IDisposable
     public string TestQualifier { get; set; } = string.Empty;
 
     public ITestCase? TestCase { get; set; }
+    private DisposalTrackerEx _disposer = new();
 
     public CodexTestBase(ITestOutputHelper output)
     {
         CodexProgramBase.Initialize();
         Output = new TimerOutputHelper(output);
         Logger = new TestLogger(output);
+        _disposer += Logger;
         Console.SetOut(Logger.Writer);
         Console.SetError(Logger.Writer);
-        SdkFeatures.AmbientLogger.EnableLocal(Logger);
-        SdkFeatures.GlobalLogger.EnableGlobal(Logger);
-        SdkFeatures.TestLogger.EnableGlobal(Logger);
+        _disposer += SdkFeatures.AmbientLogger.EnableLocal(Logger);
+        _disposer += SdkFeatures.GlobalLogger.EnableGlobal(Logger);
+        _disposer += SdkFeatures.TestLogger.EnableGlobal(Logger);
 
         Features.IsTest.EnableGlobal(true);
 
@@ -93,7 +96,7 @@ public record CodexTestBase : IDisposable
     {
         Logger.Writer.Flush();
 
-        Logger.Dispose();
+        _disposer.Dispose();
     }
 
     public string GetTestOutputDirectory(object args = null, [CallerMemberName] string testName = null, bool clean = false)
@@ -127,6 +130,12 @@ public record CodexTestBase : IDisposable
 
             return testRootDir;
         }
+    }
+
+    public IDisposable TraceEntities()
+    {
+        var d = new DisposalTracker();
+        return d;
     }
 
     public async Task<WebProgramBase> CreateWebProgram(IngestOperation indexOperation, RefAction<WebProgramArguments>? updateArguments = null)
