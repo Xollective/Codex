@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Codex.Analysis;
 using Codex.Analysis.Files;
+using Codex.Utilities.Serialization;
 
 namespace Codex.Import
 {
@@ -78,7 +79,7 @@ namespace Codex.Import
             }
         }
 
-        string IProjectFileScopeEntity.ProjectRelativePath => LogicalPath;
+        NormalizedPath IProjectFileScopeEntity.ProjectRelativePath => LogicalPath;
 
         string IProjectScopeEntity.ProjectId => PrimaryProject.ProjectId;
 

@@ -6,6 +6,7 @@ namespace Codex.ObjectModel.Attributes
     /// <summary>
     /// Specifies the type of search behavior for a field.
     /// </summary>
+    [GeneratorExclude]
     public enum SearchBehavior
     {
         /// <summary>
@@ -29,11 +30,6 @@ namespace Codex.ObjectModel.Attributes
         Sortword,
 
         /// <summary>
-        /// Search using a hierarchical path (e.g., file or namespace paths).
-        /// </summary>
-        HierarchicalPath,
-
-        /// <summary>
         /// Full-text search (tokenized, supports partial matches).
         /// </summary>
         FullText,
@@ -49,7 +45,7 @@ namespace Codex.ObjectModel.Attributes
         PrefixShortName,
 
         /// <summary>
-        /// Search using a prefix of a full name (e.g., symbol full name).
+        /// Search using a prefix of a full name or path (e.g., symbol full name).
         /// </summary>
         PrefixFullName,
 
@@ -59,16 +55,35 @@ namespace Codex.ObjectModel.Attributes
         SortValue,
     }
 
+    [GeneratorExclude]
+    public enum SearchBehaviorFlags
+    {
+        None = 0,
+        CanSearchPartialTerm = 1 << 0,
+        DisallowSummarizeFullTerm = 1 << 1,
+        PreferBinary = 1 << 2,
+        IsSymbolId = 1 << 3,
+        IsHashExcluded = 1 << 4,
+        IsStableId = 1 << 5,
+        LowCardinalityTermOptimization = 1 << 6,
+        IsPath = 1 << 7,
+        IsStableIdRef = 1 << 8
+    }
+
     public record SearchBehaviorInfo(
         SearchBehavior? Behavior = null,
-        bool CanSearchPartialTerm = false, 
-        bool DisallowSummarizeFullTerm = false,
-        bool PreferBinary = false,
-        bool IsSymbolId = false,
-        bool IsHashExcluded = false,
-        bool IsStableId = false,
-        bool LowCardinalityTermOptimization = false)
+        SearchBehaviorFlags Flags = SearchBehaviorFlags.None)
     {
+        public bool CanSearchPartialTerm => Flags.HasFlag(SearchBehaviorFlags.CanSearchPartialTerm);
+        public bool DisallowSummarizeFullTerm => Flags.HasFlag(SearchBehaviorFlags.DisallowSummarizeFullTerm);
+        public bool PreferBinary => Flags.HasFlag(SearchBehaviorFlags.PreferBinary);
+        public bool IsSymbolId => Flags.HasFlag(SearchBehaviorFlags.IsSymbolId);
+        public bool IsHashExcluded => Flags.HasFlag(SearchBehaviorFlags.IsHashExcluded);
+        public bool IsStableId => Flags.HasFlag(SearchBehaviorFlags.IsStableId);
+        public bool LowCardinalityTermOptimization => Flags.HasFlag(SearchBehaviorFlags.LowCardinalityTermOptimization);
+        public bool IsPath => Flags.HasFlag(SearchBehaviorFlags.IsPath);
+        public bool IsStableIdRef => Flags.HasFlag(SearchBehaviorFlags.IsStableIdRef);
+
         public bool TryGetBinaryValue(string value, out ValueArray<byte, T256> binaryValue)
         {
             binaryValue = ValueArrayLength.MaxCapacity;
@@ -88,6 +103,11 @@ namespace Codex.ObjectModel.Attributes
             }
 
             return false;
+        }
+
+        public SearchBehaviorInfo WithAdditionalFlags(SearchBehaviorFlags flags)
+        {
+            return this with { Flags = Flags | flags };
         }
     }
 }

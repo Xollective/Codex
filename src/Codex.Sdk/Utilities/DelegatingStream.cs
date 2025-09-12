@@ -19,6 +19,11 @@ namespace System.IO
         {
         }
 
+        protected virtual int AfterRead(int read)
+        {
+            return read;
+        }
+
         #region Properties
 
         public override bool CanRead
@@ -89,27 +94,29 @@ namespace System.IO
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            return InnerStream.Read(buffer, offset, count);
+            return AfterRead(InnerStream.Read(buffer, offset, count));
         }
 
         public override int Read(Span<byte> buffer)
         {
-            return InnerStream.Read(buffer);
+            return AfterRead(InnerStream.Read(buffer));
         }
 
         public override int ReadByte()
         {
-            return InnerStream.ReadByte();
+            var result = InnerStream.ReadByte();
+            AfterRead(1);
+            return result;
         }
 
-        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            return InnerStream.ReadAsync(buffer, offset, count, cancellationToken);
+            return AfterRead(await InnerStream.ReadAsync(buffer, offset, count, cancellationToken));
         }
 
-        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
-            return InnerStream.ReadAsync(buffer, cancellationToken);
+            return AfterRead(await InnerStream.ReadAsync(buffer, cancellationToken));
         }
 
         public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state)

@@ -35,11 +35,8 @@ public record AnalyzeTestProjectBase(ITestOutputHelper Output) : CodexTestBase(O
         };
 
         public bool ZipEncryptAnalysisOutput = false;
+        public bool AnalyzeProjectFiles = false;
 
-        // Disabling till we fix zip upload / reading to yield results consistent with
-        // file upload. Seems like content is changed somehow.
-        public bool DisableBlockZipUpload = true;
-        public bool UploadFiles = false;
         public int ProjectIndex = 0;
         public ITestProjectData Project => Projects[ProjectIndex];
         public string ProjectDirectory => Project.ProjectDirectory;
@@ -81,6 +78,8 @@ public record AnalyzeTestProjectBase(ITestOutputHelper Output) : CodexTestBase(O
         });
     }
 
+    public AnalyzeTestProjectOptions DefaultOptions = new AnalyzeTestProjectOptions();
+
     protected virtual void PreconfigureOptions(AnalyzeTestProjectOptions options)
     {
 
@@ -91,7 +90,7 @@ public record AnalyzeTestProjectBase(ITestOutputHelper Output) : CodexTestBase(O
         AsyncOut<AnalyzeTestProjectOptions> optionsOut = null,
         [CallerMemberName] string caller = null)
     {
-        var options = new AnalyzeTestProjectOptions();
+        var options = DefaultOptions with { };
         PreconfigureOptions(options);
         options = configureOptions?.Invoke(options) ?? options;
         optionsOut?.Set(options);
@@ -108,8 +107,11 @@ public record AnalyzeTestProjectBase(ITestOutputHelper Output) : CodexTestBase(O
 
         bool isAllowedTestFile(string path)
         {
-            return path.ContainsIgnoreCase("TestCases") && (options.IsAllowedTestFile?.Invoke(path) ?? true);
+            return (options.AnalyzeProjectFiles && path.EndsWithIgnoreCase("proj"))
+                || (options.IsAllowedTestFile?.Invoke(path) ?? path.ContainsIgnoreCase("TestCases"));
         }
+
+        using var _ = SdkFeatures.AmbientFileAnalysisFilter.EnableLocal(f => isAllowedTestFile(f.RepoRelativePath));
 
         args = args.Where(a => a.StartsWith('/') || isAllowedTestFile(a));
 
@@ -119,7 +121,7 @@ public record AnalyzeTestProjectBase(ITestOutputHelper Output) : CodexTestBase(O
 
             var templateCode = File.ReadAllText(Path.Combine(options.ProjectDirectory, templateCodeFile));
             templateCode = templateCode.Replace("Template", templateReplacement);
-            var processedTemplateFilePath = Path.Combine(outputPath, "template.out.cs");
+            var processedTemplateFilePath = Path.Combine(outputPath, "TestCases.template.out.cs");
             File.WriteAllText(processedTemplateFilePath, templateCode);
             args = args.Concat(new[] { processedTemplateFilePath });
         }
@@ -152,8 +154,8 @@ public record AnalyzeTestProjectBase(ITestOutputHelper Output) : CodexTestBase(O
         return analyze;
     }
 
-    protected const string PrimaryProjectRepoName = "testproj/A";
-    protected const string SecondaryProjectRepoName = "testproj/B";
+    protected const string PrimaryProjectRepoName = $"{TestProjects.RepoOrg}/A";
+    protected const string SecondaryProjectRepoName = $"{TestProjects.RepoOrg}/B";
 
     public async Task<IngestOperation> RunAnalyzeTestProject(
         Func<AnalyzeTestProjectOptions, AnalyzeTestProjectOptions> configureOptions = null,

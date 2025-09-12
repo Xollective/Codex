@@ -169,12 +169,16 @@ namespace Codex.Utilities
             }
         }
 
-        public static ReadOnlySpan<char> SubstringAfterLastIndexOfAny(this ReadOnlySpan<char> s, ReadOnlySpan<char> chars)
+        public static ReadOnlySpan<char> SubstringAfterLastIndexOfAny(this ReadOnlySpan<char> s, ReadOnlySpan<char> chars, bool requireMatch = false)
         {
             var lastIndex = s.LastIndexOfAny(chars);
             if (lastIndex > 0)
             {
                 return s.Slice(lastIndex + 1);
+            }
+            else if (lastIndex < 0 && requireMatch)
+            {
+                return default;
             }
 
             return s;

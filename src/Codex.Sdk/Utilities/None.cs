@@ -12,5 +12,7 @@ namespace Codex.Sdk.Utilities
     public struct None
     {
         public static readonly None Value = new None();
+
+        public static implicit operator None(int value) => default;
     }
 }

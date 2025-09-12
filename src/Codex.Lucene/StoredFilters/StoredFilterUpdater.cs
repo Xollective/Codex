@@ -1,10 +1,7 @@
-using System;
 using System.Collections.Immutable;
 using Codex.Logging;
-using Codex.Lucene.Formats;
 using Codex.Storage;
 using Codex.Utilities;
-using Lucene.Net.Search;
 
 namespace Codex.Lucene.Search
 {
@@ -17,12 +14,16 @@ namespace Codex.Lucene.Search
         public StableIdStorageHeader Header { get; private set; }
 
         public IStoredRepositorySettings DefaultRepoSettings { get; set; } = new StoredRepositorySettings();
+        public GlobalStoredRepositorySettings GlobalSettings { get; private set; }
 
         private string RepoSettingsPath = PathUtilities.UriCombine(SettingsRoot, RepoSettingsRelativePath, normalize: true); 
 
         public async ValueTask InitializeAsync()
         {
             Header = await LoadHeaderAsync();
+
+            var settingsFile = new StoredFile<GlobalStoredRepositorySettings>(DiskStorage, RepoSettingsPath);
+            GlobalSettings = await settingsFile.LoadAsync();
         }
 
         public async ValueTask FinalizeAsync()
@@ -36,11 +37,33 @@ namespace Codex.Lucene.Search
                 ?? await DiskStorage.CreateOrLoadValueAsync<StableIdStorageHeader>(LuceneConstants.StableIdStorageHeaderLegacyPath);
         }
 
-        public async ValueTask UpdateRepoAsync(string repoName, PersistedStoredFilter? newFilter, bool reuseOldFilter = false)
+        public struct RepoInfo<T>(T? info, string? repoName = null) where T : class, IRepositoryStoreInfo
         {
+            public string Name { get; } = (info?.Repository.Name ?? repoName).ToLowerInvariant();
+            public T? Info { get; } = info;
+
+            public string? Branch => Info.Branch.Name;
+
+            public string? Commit => Info.Commit.CommitId;
+
+            public static implicit operator RepoInfo<T>(T info)
+            {
+                return new RepoInfo<T>(info, null);
+            }
+
+            public static implicit operator RepoInfo<T>(string repoName)
+            {
+                return new RepoInfo<T>(null, repoName);
+            }
+        }
+
+        public async ValueTask UpdateRepoAsync(RepoInfo<IRepositoryStoreInfo> repoName, PersistedStoredFilter? newFilter, bool reuseOldFilter = false)
+        {
+            IStoredRepositorySettings settings = GetRepositorySettings(repoName);
+
             StoredFilterFiles storedRepoFilter = GetRepoFilter(repoName);
 
-            var addGroupFilters = (newFilter == null && !reuseOldFilter) ? new StoredFilterFiles[0] : await GetAddGroupFiltersAsync(storedRepoFilter.Name);
+            var addGroupFilters = (newFilter == null && !reuseOldFilter) ? new StoredFilterFiles[0] : await GetAddGroupFiltersAsync(repoName.Name, settings);
 
             (var oldFilter, var oldGroups) = await storedRepoFilter.GetAndUpdateRepoFilterAsync(newFilter, addGroupFilters.SelectArray(g => g.Name));
 
@@ -78,9 +101,25 @@ namespace Codex.Lucene.Search
             });
         }
 
-        public StoredFilterFiles GetRepoFilter(string repoName)
+        private IStoredRepositorySettings GetRepositorySettings(RepoInfo<IRepositoryStoreInfo> info)
         {
-            return new StoredFilterFiles(DiskStorage, repoName, StoredFilterKinds.repo);
+            foreach (var suffix in new string[] { info.Commit, info.Branch, "" }.WhereNotNull())
+            {
+                var name = info.Name;
+                if (suffix.IsNonEmpty()) name = $"{name}@{suffix}";
+
+                if (GlobalSettings.Repositories.TryGetValue(name, out var settings))
+                {
+                    return settings;
+                }
+            }
+
+            return DefaultRepoSettings;
+        }
+
+        public StoredFilterFiles GetRepoFilter(RepoInfo<IRepositoryStoreInfo> repoName)
+        {
+            return new StoredFilterFiles(DiskStorage, repoName.Name, StoredFilterKinds.repo);
         }
 
         private IReadOnlyList<StoredFilterFiles> GetGroupFilters(IEnumerable<string> groupNames)
@@ -88,12 +127,8 @@ namespace Codex.Lucene.Search
             return groupNames.Select(name => new StoredFilterFiles(DiskStorage, name, StoredFilterKinds.group)).ToArray();
         }
 
-        private async Task<IReadOnlyList<StoredFilterFiles>> GetAddGroupFiltersAsync(string repoName)
+        private async Task<IReadOnlyList<StoredFilterFiles>> GetAddGroupFiltersAsync(string repoName, IStoredRepositorySettings repoSettings)
         {
-            var settingsFile = new StoredFile<GlobalStoredRepositorySettings>(DiskStorage, RepoSettingsPath);
-            var globalSettings = await settingsFile.LoadAsync();
-            var repoSettings = globalSettings.Repositories.GetValueOrDefault(repoName, DefaultRepoSettings);
-
             IEnumerable<RepoName> getGroupNames()
             {
                 foreach (var access in Enum.GetValues<RepoAccess>())
@@ -110,7 +145,7 @@ namespace Codex.Lucene.Search
                     }
                 }
 
-                if (!repoSettings.ExplicitGroupsOnly)
+                if (repoSettings.ExplicitGroupsOnly == false || repoSettings.Groups.Count == 0)
                 {
                     yield return AllGroupName;
                 }
@@ -129,7 +164,7 @@ namespace Codex.Lucene.Search
 
             var groupNames = getGroupNames().ToImmutableHashSet();
 
-            var groupSettingsByBase = globalSettings.Groups.ToLookup(g => g.Value.Base);
+            var groupSettingsByBase = GlobalSettings.Groups.ToLookup(g => g.Value.Base);
 
             foreach (var groupName in groupNames)
             {

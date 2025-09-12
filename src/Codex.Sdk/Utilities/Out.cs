@@ -50,6 +50,8 @@ namespace Codex.Utilities
 
     public delegate void RefAction<T>(Ref<T> value);
     public delegate void OutAction<T>(Out<T> value);
+    public delegate Ref<TRef> RefOfFunc<TRef>();
+    public delegate Ref<TRef> RefOfFunc<in T, TRef>(T arg0);
 
     public static class Out
     {
@@ -84,7 +86,7 @@ namespace Codex.Utilities
 
         public static Out<T> Create<T>(ref T value) => new Out<T>(ref value, default);
 
-        public static void SetOrCreate<T>(this ref Out<T> box, in T value)
+        public static void SetOrCreate<T>(this ref Out<T> box, in T value = default)
         {
             if (box.IsValid)
             {
@@ -92,16 +94,18 @@ namespace Codex.Utilities
             }
             else
             {
-                box = Create(ref Unsafe.AsRef(value));
+                box = Create(ref Unsafe.AsRef(in value));
             }
         }
 
-        public static void Ensure<T>(this ref Out<T> box, in T value = default)
+        public static Out<T> Ensure<T>(this ref Out<T> box, in T value = default)
         {
             if (!box.IsValid)
             {
-                box = Create(ref Unsafe.AsRef(value));
+                box = Create(ref Unsafe.AsRef(in value));
             }
+
+            return box;
         }
 
         public static Ref<T> Ref<T>(out T value) => new Out<T>(out value).Ref;
@@ -109,7 +113,12 @@ namespace Codex.Utilities
         public static ref T VarRef<T>(out T local)
         {
             local = default;
-            return ref Unsafe.AsRef(local);
+            return ref Unsafe.AsRef(in local);
+        }
+
+        public static ref readonly T ReadOnlyVar<T>(in T local)
+        {
+            return ref Unsafe.AsRef(in local);
         }
 
         public static ref T RefValue<T>(out T local, T value)
@@ -131,7 +140,7 @@ namespace Codex.Utilities
             return condition;
         }
 
-        public static T Return<T, T2>(T value, T2 _)
+        public static T ReturnFirst<T>(T value, T typeHint)
         {
             return value;
         }

@@ -181,7 +181,7 @@ namespace Codex.ObjectModel.Implementation
         [DataMember(Order = 21)]
         public IntegerListModel RelatedDefinitionsIndices { get; set; }
         [DataMember(Order = 22)]
-        public List<string> RelatedDefinitionIds { get; set; }
+        public IReadOnlyList<string> RelatedDefinitionIds { get; set; }
 
         [Placeholder.Todo("Serialize this instead of integer list? Does this even need to be serialized for indexing?")]
         private BitArray excludedFromSearchBitArray;
@@ -192,12 +192,12 @@ namespace Codex.ObjectModel.Implementation
 
         public ReferenceSpanListSegmentModel(ListSegment<ReferenceSpan> spans)
         {
-            ListSet<string> listSet = new ListSet<string>();
+            var listSet = new HashSetEx<string>();
 
             if (spans.Any(s => s.RelatedDefinition.Value != null))
             {
                 RelatedDefinitionsIndices = IntegerListModel.Create(spans, span => listSet.Add(span.RelatedDefinition.Value ?? string.Empty));
-                RelatedDefinitionIds = listSet.List;
+                RelatedDefinitionIds = listSet;
             }
 
             excludedFromSearchBitArray = GetExcludedFromSearchBitArray(spans);

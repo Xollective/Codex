@@ -19,26 +19,42 @@ namespace Codex.Utilities
             return task;
         }
 
+        /// <summary>
+        /// Run a task once per key in a map. Optionally allowing forcing a run if shared result matches a condition (normally used
+        /// to force run on failure result).
+        /// </summary>
         public static async Task<TResult> RunOnceAsync<TKey, TResult, TData>(
             this ConcurrentBigMap<TKey, Task<TResult>> taskCompletionMap,
             TKey key,
-            TData data, 
+            TData data,
             Func<TKey, TData, Task<TResult>> runAsync,
-            bool removeOnCompletion = false)
+            bool removeOnCompletion = false,
+            Func<TResult, bool> shouldForceRun = null)
         {
-            if (TryReserveCompletion(taskCompletionMap, key, out var task, out var completion))
+            if (Out.Var(out var reserved, TryReserveCompletion(taskCompletionMap, key, out var task, out var completion)))
             {
+                var mapValue = task;
                 completion.LinkToTask(Out.Var(out task, Out.Invoke(async () =>
                 {
-                    return await runAsync(key, data);
+                    try
+                    {
+                        return await runAsync(key, data);
+                    }
+                    finally
+                    {
+                        if (removeOnCompletion)
+                        {
+                            taskCompletionMap.CompareRemove(key, mapValue);
+                        }
+                    }
                 })));
             }
 
             var result = await task;
 
-            if (removeOnCompletion)
+            if (!reserved && shouldForceRun?.Invoke(result) == true)
             {
-                taskCompletionMap.RemoveKey(key);
+                result = await runAsync(key, data);
             }
 
             return result;
@@ -153,6 +169,15 @@ namespace Codex.Utilities
         }
 
         public static void Max(ref int location, int value)
+        {
+            while (Out.TrueVar(out var current, location)
+                && value > current
+                && !TryCompareExchange(ref location, value, current))
+            {
+            }
+        }
+
+        public static void Max(ref long location, long value)
         {
             while (Out.TrueVar(out var current, location)
                 && value > current

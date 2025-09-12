@@ -3,9 +3,18 @@ using System.Text.Json;
 
 namespace Codex.ObjectModel
 {
-    public record FieldListVisitor(List<(string Name, object Value)> Fields = null) : ValueVisitorBase, IStandardReadOnlyDictionary<string, object>
+    public record FieldListVisitor : ValueVisitorBase, IStandardReadOnlyDictionary<string, object>
     {
-        public List<(string Name, object Value)> Fields { get; } = Fields ?? new();
+        public FieldListVisitor(List<(string Name, object Value)> Fields = null)
+        {
+            this.Fields = Fields ?? new();
+            Options = new()
+            {
+                IsBlockIndex = true
+            };
+        }
+
+        public List<(string Name, object Value)> Fields { get; }
 
         public override bool HandlesNoneBehavior => true;
 

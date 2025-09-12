@@ -84,9 +84,19 @@ namespace Codex.Utilities
             return new Uri(uri.UriString.AsSpan().SubstringBeforeFirstIndexOfAny("?").ToString());
         }
 
+        public static string RemoveQueryString(Url uri)
+        {
+            return uri.UriString.FluidSelect(s => !s.Contains("?") ? s : s.AsSpan().SubstringBeforeFirstIndexOfAny("?").ToString());
+        }
+
         public static Uri WithoutQuery(this Uri uri)
         {
             return RemoveQuery(uri);
+        }
+
+        public static string WithoutQueryString(this Uri uri)
+        {
+            return RemoveQueryString(uri);
         }
 
         public static string NormalizePath(string path, char? directorySeparator = null)
