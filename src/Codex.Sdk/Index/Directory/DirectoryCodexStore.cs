@@ -1,9 +1,12 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.ContractsLight;
+using System.Runtime;
 using System.Runtime.CompilerServices;
 using Codex.Logging;
 using Codex.ObjectModel;
 using Codex.ObjectModel.Implementation;
+using Codex.Sdk;
 using Codex.Sdk.Utilities;
 using Codex.Storage.BlockLevel;
 using Codex.Utilities;
@@ -11,6 +14,8 @@ using Codex.Utilities.Tasks;
 
 namespace Codex.Storage.Store
 {
+    using static Bytes;
+
     public partial class DirectoryCodexStore : ICodexStore, ICodexRepositoryStore
     {
         private readonly ConcurrentQueue<ValueTask<None>> backgroundTasks = new ConcurrentQueue<ValueTask<None>>();
@@ -23,7 +28,7 @@ namespace Codex.Storage.Store
 
         // These two files should contain the same content after finalization
         public const string RepositoryInfoFileName = "repo" + EntityFileExtension;
-        private const string RepositoryInitializationFileName = "initrepo" + EntityFileExtension;
+        public const string RepositoryInitializationFileName = "initrepo" + EntityFileExtension;
 
         public DirectoryRepositoryStoreInfo StoreInfo { get; set; }
 
@@ -133,29 +138,50 @@ namespace Codex.Storage.Store
             return fileSystem;
         }
 
+        void LogMemory(string label)
+        {
+            var info = GC.GetGCMemoryInfo();
+            Process proc = Process.GetCurrentProcess();
+            logger.WriteLine($"""
+            [{label}]
+                Process.WorkingSet:   {proc.WorkingSet64 * MB}
+                Process.PrivateMemory: {proc.PrivateMemorySize64 * MB}
+                GC.GetTotalMemory:    {GC.GetTotalMemory(forceFullCollection: false) * MB}
+                HighMemoryLoadThreshold: {info.HighMemoryLoadThresholdBytes * MB}
+                TotalAvailableMemory:    {info.TotalAvailableMemoryBytes * MB}
+
+            """);
+        }
+
         private async Task ReadCoreAsync(ICodexRepositoryStore repositoryStore, FileSystem fileSystem, bool finalize)
         {
-            int nextIndex = 0;
+            int? ingestGcInterval = SdkFeatures.IngestGcInterval.Value;
             var paralellism = SdkFeatures.IngestParallelism.Value ?? Math.Min(Environment.ProcessorCount, MaxParallelism);
-            foreach (var kind in ReadProjectsOnly
-                ? new[] { StoredEntityKind.Projects }
-                : StoredEntityKind.KindsProjectsFirst)
+            LogMemory("Initial memory stats");
+            var kinds = ReadProjectsOnly
+                ? [StoredEntityKind.Projects]
+                : StoredEntityKind.KindsProjectsFirst;
+
+            var kindsWithFiles = kinds.Select(k => (kind: k, files: fileSystem.GetFiles(k.Name).ToList()));
+            var totalCount = kindsWithFiles.Sum(e => e.files.Count);
+
+            foreach (var (kind, files) in kindsWithFiles)
             {
                 // Each kind is handled separately. Namely, we need all projects to be processed before files
                 // to allow lookup of referenced definitions stored with projects.
                 // NOTE: It is not sufficient to only process a file's project since MSBuild files are a part of
                 // the c# project but contain references to definitions in the MSBuild files project.
-                logger.LogMessage($"Reading {kind} infos");
-
+                int nextIndex = 0;
+                int readFileIndex = 0;
                 var kindDirectoryPath = Path.Combine(DirectoryPath, kind.Name);
-                logger.LogMessage($"Reading {kind} infos from {kindDirectoryPath}");
-                var files = fileSystem.GetFiles(kind.Name).ToList();
                 int count = files.Count;
+                logger.LogMessage($"Reading {count} {kind} infos from {kindDirectoryPath}");
 
                 await TaskUtilities.ForEachAsync(parallel: paralellism, files, async (file, token) =>
                 {
                     var i = Interlocked.Increment(ref nextIndex);
-                    logger.LogMessage($"{i}/{files.Count}: Queuing {kind} info at {file}");
+                    logger.LogMessage($"{i}/{count}: Queuing {kind} info at {file}");
+
                     if (CanReadFilter?.Invoke(file) == false || SdkFeatures.CanReadFilter.Value?.Invoke(file) == false)
                     {
                         logger.LogMessage($"{i}/{count}: Ignoring {kind} info at {file} due to defined filter function.");
@@ -171,6 +197,15 @@ namespace Codex.Storage.Store
 
                             // Ignore files larger than 10 MB
                             return;
+                        }
+
+                        if ((Interlocked.Increment(ref readFileIndex) % ingestGcInterval) == 1)
+                        {
+                            LogMemory($"{i}/{count}: Before GC");
+                            var watch = Timestamp.New();
+                            GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+                            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+                            LogMemory($"{i}/{count}: After GC - {watch.Elapsed.TotalSeconds:F2}s");
                         }
                     }
 
@@ -195,6 +230,8 @@ namespace Codex.Storage.Store
                 await repositoryStore.FinalizeAsync();
                 logger.LogMessage($"Finalized.");
             }
+
+            LogMemory("Final memory stats");
         }
 
         public async Task<ICodexRepositoryStore> CreateRepositoryStore(RepositoryStoreInfo storeInfo)
@@ -419,7 +456,7 @@ namespace Codex.Storage.Store
                 (entity) => ToStableId(entity.ProjectId),
                 (entity, repositoryStore, directoryStore) => repositoryStore.AddProjectsAsync(new[] { entity }));
 
-            public static IReadOnlyList<StoredEntityKind> KindsProjectsFirst => new StoredEntityKind[] { Projects, BoundFiles };
+            public static IReadOnlyList<StoredEntityKind> KindsProjectsFirst => [Projects, BoundFiles];
 
             public static StoredEntityKind<T, TProcessor> Create<T, TProcessor>(Func<T, string> getEntityStableId, Func<T, ICodexRepositoryStore, DirectoryCodexStore, Task> add, [CallerMemberName] string name = null)
                 where TProcessor : IPostReadProcessor<T>

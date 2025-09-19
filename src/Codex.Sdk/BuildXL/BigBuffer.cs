@@ -91,7 +91,7 @@ namespace BuildXL.Utilities.Collections
             : this(entriesPerBufferBitWidth ?? ComputeDefaultEntriesPerBufferBitWidth())
         {
         }
-        
+
         /// <summary>
         /// Creates a new concurrent block allocator
         /// </summary>
@@ -171,6 +171,13 @@ namespace BuildXL.Utilities.Collections
             //}
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public MemoryRef<TEntry> ItemRef(int index)
+        {
+            GetBufferNumberAndEntryIndexFromId(index, out int bufferNumber, out int entryIndex);
+            return m_entryBuffers[bufferNumber].Value.CreateMemoryRef(entryIndex);
+        }
+
         /// <summary>
         /// Ensures that the buffer has the given capacity
         /// NOTE: This method must be called prior to getting or setting entries in the buffer
@@ -205,7 +212,7 @@ namespace BuildXL.Utilities.Collections
                 }
             }
         }
-        
+
         private void InternalInitializeToNewCapacity(int newCapacity, BufferInitializer? initializer, bool initializeSequentially)
         {
             Resize(newCapacity / m_entriesPerBuffer);

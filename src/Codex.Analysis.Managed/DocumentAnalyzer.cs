@@ -685,7 +685,7 @@ namespace Codex.Analysis.Managed
 
             bool isEntryPoint = false;
 
-            ITypeSymbol extensionContainerType = null;
+            ITypeSymbol extensionMemberContainerType = null;
             if (isMember)
             {
                 if (symbol.Kind == SymbolKind.Method && symbol is IMethodSymbol methodSymbol)
@@ -702,11 +702,11 @@ namespace Codex.Analysis.Managed
                     {
                         if (thisParameterType.TypeKind != TypeKind.TypeParameter)
                         {
-                            extensionContainerType = thisParameterType;
+                            extensionMemberContainerType = thisParameterType;
                         }
                         else if (thisParameterType is ITypeParameterSymbol typeParam)
                         {
-                            extensionContainerType = typeParam.ConstraintTypes.SingleOrDefaultNoThrow();
+                            extensionMemberContainerType = typeParam.ConstraintTypes.SingleOrDefaultNoThrow();
                         }
                     }
                 }
@@ -737,13 +737,14 @@ namespace Codex.Analysis.Managed
                 TypeName = GetTypeName(symbol),
             };
 
-            if (extensionContainerType != null)
+            if (extensionMemberContainerType != null)
             {
-                extensionContainerType = extensionContainerType.OriginalDefinition ?? extensionContainerType;
-                boundSymbol.ExtensionInfo = new()
+                extensionMemberContainerType = extensionMemberContainerType.OriginalDefinition ?? extensionMemberContainerType;
+
+                boundSymbol.ExtendedMemberInfo = new()
                 {
-                    ProjectId = extensionContainerType.GetProjectId(),
-                    ContainerQualifiedName = extensionContainerType.GetQualifiedName()
+                    ProjectId = extensionMemberContainerType.GetProjectId(),
+                    ContainerQualifiedName = extensionMemberContainerType.GetQualifiedName()
                 };
             }
 

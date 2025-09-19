@@ -22,6 +22,7 @@ namespace Codex.ObjectModel
         /// The identifier of the object owning this property
         /// </summary>
         [SearchBehavior(SearchBehavior.Term)]
+        [Exclude(ObjectStage.BlockIndex)]
         int OwnerId { get; }
     }
 

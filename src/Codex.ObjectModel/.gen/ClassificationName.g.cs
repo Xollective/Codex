@@ -15,6 +15,7 @@ namespace Codex.ObjectModel
         Whitespace = 11,
         Text = 12,
         ReassignedVariable = 13,
+        ObsoleteSymbol = 94,
         StaticSymbol = 14,
         PreprocessorText = 15,
         Punctuation = 16,

@@ -17,7 +17,7 @@
 
   <PropertyGroup Condition="'$(DisableWorkloads)' == ''">
     <!-- By default disable workloads -->
-    <!--<DisableWorkloads>true</DisableWorkloads>-->
+    <DisableWorkloads>true</DisableWorkloads>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(DisableWorkloads)' == 'true'">

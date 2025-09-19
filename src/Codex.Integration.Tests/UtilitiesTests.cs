@@ -1,7 +1,9 @@
 using System.Collections.Immutable;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Text;
+using BuildXL.Utilities.Collections;
 using Codex.Application.Verbs;
 using Codex.Lucene.Search;
 using Codex.ObjectModel;
@@ -40,6 +42,89 @@ public partial record UtilitiesTests(ITestOutputHelper output) : CodexTestBase(o
     {
         var actual = PathUtilities.Combine(baseUri, relativeUri, preserveBaseQuery, forcePreserveBaseQuery);
         actual.ToString().Should().Be(expected);
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    private record struct PackedTuple(UInt24 a, UInt24 b, UInt24 c, UInt24 d);
+
+    [Fact]
+    public void Int24Test()
+    {
+        var tuple = ((UInt24)0, (UInt24)0);
+        var tupleSize = Unsafe.SizeOf<(UInt24, UInt24, UInt24, UInt24)>();
+        var ptSize = Unsafe.SizeOf<PackedTuple>();
+
+        var size = Unsafe.SizeOf<UInt24>();
+        size.Should().Be(3);
+
+        var max = UInt24.Max;
+
+        var maxa = new[] { UInt24.Max, UInt24.Max };
+        var bytes = MemoryMarshal.AsBytes(maxa.AsSpan());
+
+        var i = Unsafe.ReadUnaligned<int>(ref Unsafe.As<UInt24, byte>(ref max));
+        var i2 = Unsafe.As<UInt24, int>(ref max);
+
+        var i3 = Unsafe.As<UInt24, int>(ref maxa[0]);
+
+        check(0, i => (UInt24)i);
+        check(1, i => (UInt24)i);
+        check(ushort.MaxValue, i => (UInt24)i);
+        check(short.MaxValue, i => (UInt24)i);
+        check(1_000_000, i => (UInt24)i);
+        check((1 << 24) - 1, i => (UInt24)i);
+
+        void check<TInt>(TInt value, Func<TInt, UInt24> cast)
+            where TInt : INumber<TInt>
+        {
+            int intValue = int.CreateChecked<TInt>(value);
+            var unsafeCastIntValue = Unsafe.As<TInt, UInt24>(ref value);
+
+            UInt24 uint24Value = cast(value);
+
+            UInt24 v1 = uint24Value;
+            UInt24 v2 = uint24Value;
+            (v1 == v2).Should().BeTrue();
+            (v1 != v2).Should().BeFalse();
+
+            var getValue = uint24Value.GetValue();
+
+            uint24Value.GetValue().Should().Be(intValue);
+            uint24Value.Should().Be((UInt24)intValue);
+            uint24Value = (UInt24)intValue;
+            uint24Value.GetValue().Should().Be(intValue);
+        }
+    }
+
+    [Fact]
+    public async Task AtomicTests()
+    {
+        var map = new ConcurrentBigMap<int, Task<bool>>();
+
+        var result = await Atomic.RunOnceAsync(map, 12, true, async (key, data) =>
+        {
+            await Task.Yield();
+            return data;
+        },
+        removeOnCompletion: true);
+
+        map.Count.Should().Be(0);
+    }
+
+    [Fact]
+    public void SetMapTests()
+    {
+        var map = new SetMap<int, long>();
+
+        ref var v = ref map.GetOrAdd(234);
+
+        v = 1000;
+
+        map[234].Should().Be(v);
+
+        map.Reset();
+        map.Count.Should().Be(0);
+        map.Lookup.Contains(234).Should().BeFalse();
     }
 
     [Fact]
