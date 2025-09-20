@@ -18,6 +18,8 @@ namespace Codex.ObjectModel
         IValueVisitor<IQueryFactory, StringEnum<PropertyKey>>,
         IValueVisitor<IQueryFactory, StringEnum<SymbolKinds>>
     {
+        VisitorOptions Options { get; }
+
     }
 
     [GeneratorExclude]
@@ -49,6 +51,11 @@ namespace Codex.ObjectModel
         IQueryFactory<IVisitor, TQuery, StringEnum<SymbolKinds>>,
         IQueryFactory<IVisitor, TQuery, StringEnum<PropertyKey>>
     {
+    }
+
+    public record struct VisitorOptions
+    {
+        public bool IsBlockIndex { get; set; }
     }
 
     [GeneratorExclude]

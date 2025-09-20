@@ -38,7 +38,7 @@ namespace Codex
 
         public SearchField this[string fieldName] => Fields[fieldName];
 
-        public static SearchType<T> Create<T>(List<SearchType> registeredSearchTypes, SearchTypeId? explicitTypeId = null, [CallerMemberName]string name = null)
+        public static SearchType<T> Create<T>(List<SearchType> registeredSearchTypes, SearchTypeId? explicitTypeId = null, [CallerMemberName] string name = null)
             where T : class, ISearchEntity
         {
             var searchType = new SearchType<T>(name);
@@ -75,21 +75,26 @@ namespace Codex
 
         public SearchField ExcludeFromHash()
         {
-            BehaviorInfo = BehaviorInfo with { IsHashExcluded = true };
+            return WithFlags(SearchBehaviorFlags.IsHashExcluded);
+        }
+
+        public SearchField WithFlags(SearchBehaviorFlags flags)
+        {
+            BehaviorInfo = BehaviorInfo with { Flags = BehaviorInfo.Flags | flags };
             return this;
         }
     }
 
     public abstract record SearchFieldBase<TSearchType, TFieldType>(string Name, SearchBehavior Behavior)
-        : SearchField(Name, Behavior, typeof(TFieldType)), 
+        : SearchField(Name, Behavior, typeof(TFieldType)),
             IMappingField<TSearchType, TFieldType>,
             ISortField<TSearchType, TFieldType>
     {
-        public Func<TSearchType, bool> ShouldExclude;
+        public Func<TSearchType, VisitorOptions, bool> ShouldExclude;
 
         public void Visit(TSearchType entity, IVisitor visitor)
         {
-            if (ShouldExclude != null && ShouldExclude(entity)) return;
+            if (ShouldExclude != null && ShouldExclude(entity, visitor.Options)) return;
 
             var valueVisitor = (IValueVisitor<TFieldType>)visitor;
             if (Behavior == SearchBehavior.None && !valueVisitor.HandlesNoneBehavior)
@@ -155,7 +160,7 @@ namespace Codex
 
         public Func<TSearchType, object> GetRoutingKey { get; private set; }
 
-        public Func<TSearchType, bool> FieldExcludeFilter { get; private set; }
+        public Func<TSearchType, VisitorOptions, bool> FieldExcludeFilter { get; private set; }
 
         public Type ExternalEntityType { get; private set; }
         public Func<TSearchType, bool> HasExternalLink { get; private set; } = s => false;
@@ -183,8 +188,7 @@ namespace Codex
             //SearchField(s => s.EntityContentSize, SearchBehavior.Term);
             SearchField(s => s.StableId, SearchBehavior.SortValue, configure: s => s.BehaviorInfo = s.BehaviorInfo with
             {
-                IsHashExcluded = true,
-                IsStableId = true
+                Flags = s.BehaviorInfo.Flags | SearchBehaviorFlags.IsHashExcluded | SearchBehaviorFlags.IsStableId
             });
             //SearchField(s => s.SnapshotId, SearchBehavior.Sortword);
 
@@ -226,7 +230,7 @@ namespace Codex
             return this;
         }
 
-        public SearchType<TSearchType> SetShouldExclude(Func<TSearchType, bool> filter = null)
+        public SearchType<TSearchType> SetShouldExclude(Func<TSearchType, VisitorOptions, bool> filter = null)
         {
             FieldExcludeFilter = filter;
             return this;
@@ -266,11 +270,22 @@ namespace Codex
         {
             if (TypeSystemHelpers.Is<Func<TSearchType, T>, Func<TSearchType, SymbolId>>(searchField, searchSymbolField =>
             {
-
                 Func<TSearchType, string> searchField = s => searchSymbolField(s).Value;
                 SearchNamedFieldCore(searchField, behavior, name, configure: f =>
                 {
-                    f.BehaviorInfo = f.BehaviorInfo with { PreferBinary = true, IsSymbolId = true };
+                    f.BehaviorInfo = f.BehaviorInfo with
+                    {
+                        Flags = f.BehaviorInfo.Flags | SearchBehaviorFlags.PreferBinary | SearchBehaviorFlags.IsSymbolId
+                    };
+                    configure?.Invoke(f);
+                }, isValid);
+            })
+            || TypeSystemHelpers.Is<Func<TSearchType, T>, Func<TSearchType, NormalizedPath>>(searchField, retypedSearchField =>
+            {
+                Func<TSearchType, string> searchField = s => retypedSearchField(s).Path?.ToLowerInvariant();
+                SearchNamedFieldCore(searchField, behavior, name, configure: f =>
+                {
+                    f.BehaviorInfo = f.BehaviorInfo with { Flags = f.BehaviorInfo.Flags | SearchBehaviorFlags.IsPath };
                     configure?.Invoke(f);
                 }, isValid);
             }))
@@ -348,7 +363,7 @@ namespace Codex
             return this;
         }
 
-        public SearchFieldBase<TSearchType, TFieldType> GetMappingField<TFieldType>([CallerMemberName]string name = null)
+        public SearchFieldBase<TSearchType, TFieldType> GetMappingField<TFieldType>([CallerMemberName] string name = null)
         {
             return (SearchFieldBase<TSearchType, TFieldType>)this[name];
         }
@@ -366,6 +381,15 @@ namespace Codex
         private string GetName<T>(Expression<Func<TSearchType, T>> expression)
         {
             var memberExpression = (MemberExpression)expression.Body;
+            var name = memberExpression.Member.Name;
+            if (name == nameof(Nullable<int>.Value)
+                && memberExpression.Member.DeclaringType is var type
+                && type.IsGenericType
+                && type.GetGenericTypeDefinition() == typeof(Nullable<>))
+            {
+                memberExpression = (MemberExpression)memberExpression.Expression!;
+            }
+
             return memberExpression.Member.Name;
         }
     }

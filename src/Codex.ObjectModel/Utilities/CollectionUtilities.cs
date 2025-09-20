@@ -21,6 +21,12 @@ namespace Codex.Utilities
             return new(array.Array, pool);
         }
 
+        public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T> items)
+            where T : class
+        {
+            return items.Where(s => s != null);
+        }
+
         public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items, HashSet<T> visited)
         {
             return DistinctBy(items, static t => t, visited);
@@ -205,6 +211,11 @@ namespace Codex.Utilities
             return SelectList(items, static (item, index, selector) => selector(item), selector);
         }
 
+        public static IReadOnlyList<TResult> SelectList<T, TResult>(this IReadOnlyList<T> items, Func<T, int, TResult> selector)
+        {
+            return SelectList(items, static (item, index, selector) => selector(item, index), selector);
+        }
+
         public static IReadOnlyList<TResult> SelectManyList<T, TResult>(this IReadOnlyList<T> items, int expansionFactor, Func<(T Item, int SubIndex), TResult> selector)
         {
             var rangeList = new RangeList(new Extent(0, items.Count * expansionFactor));
@@ -251,6 +262,11 @@ namespace Codex.Utilities
             }
 
             return result;
+        }
+
+        public static IReadOnlyList<(T Item, int Index)> WithIndicesList<T>(this IReadOnlyList<T> items)
+        {
+            return items.SelectList((item, index) => (item, index));
         }
 
         public static IEnumerable<(T Item, int Index)> WithIndices<T>(this IEnumerable<T> items)

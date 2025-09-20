@@ -16,57 +16,16 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace Codex.Analysis.Projects
 {
-    public class CompilerLogProjectAnalyzer : RepoProjectAnalyzerBase
+    public class CompilerLogProjectAnalyzer(Logger logger, string[] searchPaths)
+        : InvocationSolutionProjectAnalyzer(logger, searchPaths)
     {
-        private readonly Func<string, string[]> compilerLogFinder;
-        private readonly Logger logger;
-        private readonly string[] compilerLogSearchPaths;
-        public bool RequireProjectFilesExist { get; set; }
+        protected override string Description => "compiler log";
 
-        public CompilerLogProjectAnalyzer(Logger logger,
-            string[] compilerLogSearchPaths, 
-            Func<string, string[]> compilerLogFinder = null)
+        protected override string[] FileTypes { get; } = ["*.compilerlog", "*.complog"];
+
+        protected override IEnumerable<InvocationSolutionInfoBuilderBase> GetBuilders(Repo repo, string[] files)
         {
-            this.logger = logger;
-            this.compilerLogSearchPaths = compilerLogSearchPaths;
-            logger.LogMessage($"CompilerLog search search paths:{Environment.NewLine}{string.Join(Environment.NewLine, compilerLogSearchPaths)}");
-            this.compilerLogFinder = compilerLogFinder ?? FindCompilerLogs;
-        }
-
-        public override void CreateProjects(Repo repo)
-        {
-            foreach (var compilerLogSearchPath in compilerLogSearchPaths)
-            {
-                var compilerLogs = compilerLogFinder(compilerLogSearchPath);
-                if (compilerLogs.Length != 0)
-                {
-                    logger.LogMessage($"Found {compilerLogs.Length} compiler logs at compiler log search path '{compilerLogSearchPath}':{Environment.NewLine}{string.Join(Environment.NewLine, compilerLogs)}");
-                }
-                else
-                {
-                    logger.LogMessage($"No {compilerLogs.Length} compiler log found at compiler log search path '{compilerLogSearchPath}'.");
-                }
-
-                foreach (var compilerLog in compilerLogs)
-                {
-                    SolutionInfoBuilder builder = new SolutionInfoBuilder(compilerLog, repo);
-                    if (builder.HasProjects)
-                    {
-                        SolutionProjectAnalyzer.AddSolutionProjects
-                            (repo, 
-                            () => Task.FromResult(builder.Build()),
-                            workspace: builder.Workspace,
-                            requireProjectExists: RequireProjectFilesExist, 
-                            solutionName: builder.SolutionName);
-                    }
-                }
-            }
-        }
-
-        public static string[] FindCompilerLogs(string compilerLogSearchPath)
-        {
-            return BinLogProjectAnalyzer.FindFiles(compilerLogSearchPath,
-                "*.compilerlog", "*.complog");
+            return files.Select(file => new SolutionInfoBuilder(file, repo));
         }
 
         public class SolutionInfoBuilder : InvocationSolutionInfoBuilderBase
@@ -98,7 +57,6 @@ namespace Codex.Analysis.Projects
             {
                 return reader.ReadSolutionInfo();
             }
-
         }
     }
 }

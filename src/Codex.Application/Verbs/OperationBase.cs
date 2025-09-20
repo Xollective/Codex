@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Diagnostics.ContractsLight;
 using Codex.Logging;
 using Codex.Utilities;
 using DotNext;
@@ -33,6 +34,9 @@ public abstract record OperationBase : IOperation, IDisposable
     [Option("launchDebugger", HelpText = "Indicates that debugger should be launched.", Hidden = true)]
     public bool LaunchDebugger { get; set; }
 
+    [Option("debugOnFail", HelpText = "Indicates that debugger should be launched when contract failures occur.", Hidden = true)]
+    public bool DebugOnFailure { get; set; }
+
     public Logger Logger { get; set; }
     private Logger localLogger;
     private IDisposable globalLoggerScope;
@@ -47,6 +51,14 @@ public abstract record OperationBase : IOperation, IDisposable
         localLogger = Logger;
         Logger ??= SdkFeatures.GetGlobalLogger();
         Logger ??= (localLogger = GetLogger());
+
+        if (DebugOnFailure)
+        {
+            Contract.ContractFailed += (object? sender, ContractFailedEventArgs e) =>
+            {
+                Debugger.Launch();
+            };
+        }
 
         if (localLogger != null)
         {

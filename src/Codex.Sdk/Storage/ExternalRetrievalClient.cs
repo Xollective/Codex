@@ -49,6 +49,7 @@ public interface IExternalRetrievalClient :
     IExternalRetrievalClient<IDefinitionSearchModel>,
     IExternalRetrievalClient<IProjectSearchModel>,
     IExternalRetrievalClient<IProjectReferenceSearchModel>,
+    IExternalRetrievalClient<IPropertySearchModel>,
     IExternalRetrievalClient<ITextSourceSearchModel>,
     IDescriber<ICommitSearchModel>,
     IDescriber<IRepositorySearchModel>

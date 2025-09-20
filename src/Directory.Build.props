@@ -9,6 +9,8 @@
     <TargetFramework Condition="'$(MSBuildProjectName)' == 'Codex.Web.WasmNext'">net8.0</TargetFramework>
     <TargetFramework Condition="'$(MSBuildProjectName)' == 'Codex.Web.Host'">net8.0</TargetFramework>
     <TargetFramework Condition="'$(MSBuildProjectName)' == 'Codex.Web.Host.Wpf'">net8.0-windows</TargetFramework>
+    <BuildLogicDir>$(MSBuildThisFileDirectory)/src/build</BuildLogicDir>
+    <BuildTasksDir>$(MSBuildThisFileDirectory)/src/Codex.Build.Tasks</BuildTasksDir>
   </PropertyGroup>
 
   <PropertyGroup>

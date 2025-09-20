@@ -58,7 +58,7 @@ namespace Codex.Utilities
         /// <summary>
         /// Gets the number of items in the array currently in use.
         /// </summary>
-        public int Length => _count;
+        public int Length { get => _count; set => SetLength(value); }
 
         /// <summary>
         /// Gets or sets the item at a certain index in the array.

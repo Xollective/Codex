@@ -23,7 +23,7 @@ namespace Codex.Analysis
             if (SourceControl is { } provider
                 && provider.TryGetContentId(sourceFile.RepoRelativePath, out var contentId))
             {
-                sourceFile.SourceFile.Info.SourceControlContentId = contentId.Value;
+                sourceFile.SourceFile.Info.ContentId = contentId.Value;
                 sourceFile.SourceFile.Info.Properties[contentId.Key] = contentId.Value;
             }
         }

@@ -13,6 +13,7 @@ namespace Codex
     {
         None = 0,
         StableBlockIndexing = 1 << 0,
+        Entities = 1 << 1,
     }
 
     /// <summary>

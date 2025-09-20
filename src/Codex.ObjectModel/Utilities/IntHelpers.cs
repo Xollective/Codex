@@ -72,11 +72,14 @@ namespace Codex.Utilities
             return ToEnum<TEnum>(result);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static TTarget As<TSource, TTarget>(TSource source)
+            where TSource : unmanaged
+            where TTarget : unmanaged
         {
-            UInt128 value = 0;
-            Unsafe.As<UInt128, TSource>(ref value) = source;
-            return Unsafe.As<UInt128, TTarget>(ref value);
+            TTarget target = default;
+            Unsafe.As<TTarget, TSource>(ref target) = source;
+            return target;
         }
 
         public static long ToInteger<TEnum>(this TEnum e)

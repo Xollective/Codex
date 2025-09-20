@@ -152,36 +152,51 @@ public record IngestOperation : IndexReadOperationBase
 
     private async Task LoadAsync(bool finalizePerRepo = true)
     {
-        if (Scan)
-        {
-            var directories = Directory.GetFileSystemEntries(InputPath);
-            int i = 1;
-            foreach (var directory in directories)
-            {
-                Logger.LogMessage($"[{i} of {directories.Length}] Loading {directory}");
-                await LoadCoreAsync(directory);
+        string loadPath(params string[] subPath) => Path.Combine([InputPath, .. subPath]);
+        // Cases
+        // 1. Single analysis store directory
+        // 2. Single analysis store zip
+        // 3. Single nested analysis store directory
+        // 4. Directory containing multiple analysis directories or zips
 
-                // Only clear indices on first use
-                Clean = false;
-                i++;
-            }
-        }
-        else
+        if (File.Exists(InputPath))
         {
+            // 2. Single analysis store zip
             await LoadCoreAsync(InputPath);
+        }
+        else if (Directory.Exists(InputPath))
+        {
+            if (File.Exists(loadPath(DirectoryCodexStore.RepositoryInitializationFileName)))
+            {
+                // 1. Single analysis store directory
+                await LoadCoreAsync(InputPath);
+            }
+            else if (File.Exists(loadPath("store", DirectoryCodexStore.RepositoryInitializationFileName)))
+            {
+                // 2. Single nested analysis store directory
+                await LoadCoreAsync(loadPath("store"));
+            }
+            else
+            {
+                // 4. Directory containing multiple analysis store directories or zips
+                var inputs = Directory.GetFileSystemEntries(InputPath);
+                int i = 1;
+                foreach (var input in inputs)
+                {
+                    Logger.LogMessage($"[{i} of {inputs.Length}] Loading {input}");
+                    await LoadCoreAsync(input);
+
+                    // Only clear indices on first use
+                    Clean = false;
+                    i++;
+                }
+            }
         }
     }
 
     protected async Task LoadCoreAsync(
         string loadDirectory)
     {
-        if (File.Exists(Path.Combine(loadDirectory, @"store\repo.cdx.json")))
-        {
-            loadDirectory = Path.Combine(loadDirectory, "store");
-        }
-
-        if (String.IsNullOrEmpty(loadDirectory)) throw new ArgumentException("Load directory must be specified. Use -d to provide it.");
-
         var loadDirectoryStore = new DirectoryCodexStore(loadDirectory, Logger) { CanReadFilter = CanReadFilter };
         await loadDirectoryStore.ReadAsync(OutputStore, repositoryName: RepoName, finalize: FinalizePerRepo);
     }
@@ -217,7 +232,6 @@ public record IngestOperation : IndexReadOperationBase
             IncludedTypes = IncludeTypes?.Count == 0 ? null : IncludeTypes?.ToHashSet(),
             StoreIndexFilesInGit = UseGitStorage,
             StagingDirectory = StagingDirectory,
-            Alias = Alias,
         };
 
         IObjectStorage getDiskObjectStorage(string relativePath = "")
