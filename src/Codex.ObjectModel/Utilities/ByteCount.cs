@@ -2,7 +2,7 @@ using System.Numerics;
 
 namespace Codex.Utilities
 {
-    public record struct ByteCount(long Value) : IAdditionOperators<ByteCount, long, ByteCount>
+    public record struct ByteCount(long Value, Units units = Units.MB) : IAdditionOperators<ByteCount, long, ByteCount>
     {
         public long Value = Value;
 
@@ -11,14 +11,27 @@ namespace Codex.Utilities
             return new ByteCount(left.Value + right);
         }
 
-        public override string ToString()
+        public static ByteCount operator *(ByteCount left, long right)
         {
-            var mb = Value / 1_000_000.0;
-
-            return $"{mb:F2} MB";
+            return new ByteCount(left.Value * right);
         }
 
-        public static implicit operator ByteCount(long Value) => new(Value);
+        public static ByteCount operator *(long left, ByteCount right)
+        {
+            return new ByteCount(right.Value * left);
+        }
+
+        public override string ToString()
+        {
+            var scaledValue = Value / ((long)units * 1.0);
+
+            return $"{scaledValue:F2} {units}";
+        }
+
+        public static implicit operator ByteCount(long value) => new(value);
+
+        public static implicit operator ByteCount(Units units) => new(1, units);
+
     }
 
     public static class ByteCountExtensions
@@ -27,5 +40,22 @@ namespace Codex.Utilities
         {
             Interlocked.Add(ref count.Value, bytes);
         }
+    }
+
+    [GeneratorExclude]
+    public enum Units : long
+    {
+        bytes = 1,
+        KB = 1 << 10,
+        MB = 1 << 20,
+        GB = 1 << 30,
+    }
+
+    public static class Bytes
+    {
+        public static ByteCount bytes = Units.bytes;
+        public static ByteCount KB = Units.KB;
+        public static ByteCount MB = Units.MB;
+        public static ByteCount GB = Units.GB;
     }
 }

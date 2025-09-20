@@ -94,6 +94,15 @@ namespace Codex.Utilities
             return $"[{Start}-{EndExclusive}]";
         }
 
+        public IEnumerable<LongExtent> Chunk(long chunkSize)
+        {
+            var end = EndExclusive;
+            for (long i = Start; i < EndExclusive; i += chunkSize)
+            {
+                yield return new(i, Math.Min(chunkSize, end - i));
+            }
+        }
+
         public string Serialize()
         {
             return $"{Start}-{EndExclusive}";

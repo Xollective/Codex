@@ -11,6 +11,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Codex.Application;
 using Codex.Cli;
+using Codex.Logging;
 using Codex.Sdk;
 using Codex.Utilities;
 using CommandLine;
@@ -21,6 +22,8 @@ namespace Codex.Automation.Workflow
 {
     using static Codex.CodexConstants;
     using static Helpers;
+    using static PipelineUtilities.AzureDevOps;
+    using static PipelineUtilities;
 
     public partial class WorkflowProgram
     {
@@ -32,9 +35,12 @@ namespace Codex.Automation.Workflow
             return (mode & flag) == flag;
         }
 
-        public static Task<int> Main(string[] args)
+        public static async Task<int> Main(string[] args)
         {
-            return RunAsync(args);
+            using var _ = SdkFeatures.GlobalLogger.EnableLocal(
+                SdkFeatures.GetGlobalLogger()
+                ?? new ConsoleLogger());
+            return await RunAsync(args);
         }
 
         public static ParseResult Parse(ConfiguredCommandLineArgs args, Arguments arguments)
@@ -51,8 +57,6 @@ namespace Codex.Automation.Workflow
             {
                 builder = builder.UseExceptionHandler();
             }
-
-            builder = builder.CancelOnProcessTermination();
 
             return builder.Build().Parse(args.Arguments);
         }
@@ -246,17 +250,17 @@ namespace Codex.Automation.Workflow
 
             if (!arguments.NoBuildTag && string.IsNullOrEmpty(Environment.GetEnvironmentVariable("RELEASE_RELEASENAME")))
             {
-                Console.WriteLine($"##vso[build.addbuildtag]{BuildTags.CodexEnabled}");
-                Console.WriteLine($"##vso[build.addbuildtag]{BuildTags.FormatVersion}");
+                AddBuildTag(BuildTags.CodexEnabled);
+                AddBuildTag(BuildTags.FormatVersion);
 
                 if (HasFlag(mode, Mode.IndexOnly))
                 {
-                    Console.WriteLine($"##vso[build.addbuildtag]{BuildTags.CodexIndexEnabled}");
+                    AddBuildTag(BuildTags.CodexIndexEnabled);
                 }
 
-                if (SourceControlUri.TryParse(arguments.RepoSpec, out var uri))
+                if (arguments.RepoUri is { } uri)
                 {
-                    Console.WriteLine($"##vso[build.addbuildtag]{uri.GetBuildTag()}");
+                    AddBuildTag(uri.GetBuildTag());
                 }
             }
 
@@ -345,14 +349,14 @@ namespace Codex.Automation.Workflow
             if (HasFlag(mode, Mode.Prepare))
             {
                 // download files
-                Console.WriteLine($"##vso[task.setvariable variable=CodexBinDir;]{codexBinDirectory}");
-                Console.WriteLine($"##vso[task.setvariable variable=CodexAnalysisOutDir;]{analysisOutputDirectory}");
-                Console.WriteLine($"##vso[task.setvariable variable=CodexExePath;]{executablePath}");
-                Console.WriteLine($"##vso[task.setvariable variable=CodexAnalysisArguments;]{analysisArguments}");
+                SetPipelineVariable("CodexBinDir", codexBinDirectory, isSecret: false);
+                SetPipelineVariable("CodexAnalysisOutDir", analysisOutputDirectory, isSecret: false);
+                SetPipelineVariable("CodexExePath", executablePath, isSecret: false);
+                SetPipelineVariable("CodexAnalysisArguments", analysisArguments, isSecret: false);
 
                 if (!string.IsNullOrEmpty(arguments.RepoName))
                 {
-                    Console.WriteLine($"##vso[task.setvariable variable=CodexRepoName;]{arguments.RepoName}");
+                    SetPipelineVariable("CodexRepoName", arguments.RepoName, isSecret: false);
                 }
             }
 
@@ -364,7 +368,7 @@ namespace Codex.Automation.Workflow
 
                 Directory.CreateDirectory(arguments.ProjectDataDir);
 
-                Console.WriteLine($"##vso[task.setvariable variable=CodexAnalysisArguments;]{analysisArguments}");
+                SetPipelineVariable("CodexAnalysisArguments", analysisArguments, isSecret: false);
 
                 // Set build number again here because build may have changed the build number.
                 UpdateBuildNumber(arguments);
@@ -381,11 +385,6 @@ namespace Codex.Automation.Workflow
             if (HasFlag(mode, Mode.IndexOnly))
             {
                 // run exe
-                if (!string.IsNullOrEmpty(arguments.CodexOutputRoot))
-                {
-                    Directory.CreateDirectory(arguments.CodexOutputRoot);
-                }
-
                 success &= arguments.RunCodexProcess(executablePath, indexArguments, exitCode);
             }
 
@@ -426,7 +425,7 @@ namespace Codex.Automation.Workflow
                         // publish to a vsts build
                         Console.WriteLine($"Publishing to Build: '{outputZip}' -> '{outputName}'");
                         Console.WriteLine($"##vso[artifact.upload artifactname={outputName};]{outputZip}");
-                        Console.WriteLine($"##vso[build.addbuildtag]{outputName}");
+                        AddBuildTag(outputName);
                     }
                     else
                     {

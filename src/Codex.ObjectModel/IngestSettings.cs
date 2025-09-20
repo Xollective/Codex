@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics.ContractsLight;
 
 namespace Codex.ObjectModel;
@@ -10,7 +11,7 @@ public interface IStoredRepositorySettings
     /// <summary>
     /// Indicates whether repo should 
     /// </summary>
-    bool ExplicitGroupsOnly { get; set; }
+    bool? ExplicitGroupsOnly { get; }
 
     /// <summary>
     /// Gets list of groups to add 

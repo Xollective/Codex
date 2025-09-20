@@ -27,6 +27,7 @@ using DotNext;
 using DotNext.IO;
 using FluentAssertions;
 using LibGit2Sharp;
+using Microsoft.Extensions.Options;
 using Microsoft.Net.Http.Headers;
 using Mono.Cecil.Cil;
 using Xunit.Abstractions;
@@ -76,7 +77,6 @@ public partial record AnalyzeTestProject(ITestOutputHelper Output) : AnalyzeTest
     public async Task ProjectFile()
     {
         var isAllowed = (string p) => p.EndsWithIgnoreCase("CodexTestProject.csproj");
-        using var _ = SdkFeatures.AmbientFileIndexFilter.EnableGlobal(f => isAllowed(f.ProjectRelativePath));
         var ingest = await RunAnalyzeTestProject(o =>
         {
             o.IsAllowedTestFile = isAllowed;
@@ -88,18 +88,17 @@ public partial record AnalyzeTestProject(ITestOutputHelper Output) : AnalyzeTest
         await page.Search("CodexTestProject.csproj");
         await page.ClickLeftPaneAsync(0);
 
-        await page.ClickAsync("<*ProvideCommandLineArgs");
+        await page.ClickAsync("<*ProvideCommandLineArgs>");
 
-        foreach (var r in page.RightSource.References)
-        {
+        view.LeftPane.Content.AsCategorized.Categories[0].Header.Should().Contain("ProvideCommandLineArgs");
 
-        }
-
+        await page.Search("#project");
     }
 
     [Fact]
     public async Task AnonymousTypes()
     {
+        //TraceEntities();
         using var _ = Features.AddDefinitionForInheritedInterfaceImplementations.EnableLocal(true);
 
         var ingest = await RunAnalyzeTestProject(o =>
@@ -186,9 +185,12 @@ public partial record AnalyzeTestProject(ITestOutputHelper Output) : AnalyzeTest
     [Fact]
     public async Task TestProjectScope()
     {
+        //TraceEntities();
+        DefaultOptions.AnalyzeProjectFiles = true;
         var ingest = await RunAnalyzeTestProject(o =>
         {
             o.IncludeSecondaryProject = true;
+            o.IsAllowedTestFile = path => true;
             return o;
         });
 
@@ -196,7 +198,7 @@ public partial record AnalyzeTestProject(ITestOutputHelper Output) : AnalyzeTest
 
         await page.Search("ProjectScopeCommonType");
 
-        await page.Search("testproj");
+        await page.Search(TestProjects.RepoOrg);
         Assert.Equal(2, page.LeftItems.Count);
         Assert.All(page.LeftItems, i => Assert.Equal(SymbolKinds.Repo, i.AsSymbol().Symbol.Kind));
 
@@ -300,6 +302,7 @@ public partial record AnalyzeTestProject(ITestOutputHelper Output) : AnalyzeTest
     [Fact]
     public async Task TestRepoScope()
     {
+        DefaultOptions.AnalyzeProjectFiles = true;
         var ingest = await RunAnalyzeTestProject(o =>
         {
             o.IncludeSecondaryProject = true;
@@ -668,6 +671,7 @@ public partial record AnalyzeTestProject(ITestOutputHelper Output) : AnalyzeTest
     [Fact]
     public async Task SearchIndexWithStoredFiltersSnapshots()
     {
+        DefaultOptions.AnalyzeProjectFiles = true;
         int index = 0;
         IngestOperation ingest = null;
 
@@ -735,12 +739,24 @@ public partial record AnalyzeTestProject(ITestOutputHelper Output) : AnalyzeTest
         }
     }
 
+    public IDisposable VerifyAnalysisZipParallelRead()
+    {
+        byte[] capturedBytes = null;
+        return SdkFeatures.TryGetAnalysisZipParallelReadStream.EnableLocal((caller, fs, subStream) =>
+        {
+            capturedBytes ??= File.ReadAllBytes(fs.Name);
+
+            return new VerificationReadStream(new MemoryStream(capturedBytes) { Position = fs.Position }, subStream) { DebugName = caller };
+        });
+    }
+
     //[Theory][InlineData(0)][InlineData(1)][InlineData(2)][InlineData(3)]
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public async Task SearchIndexWithStoredFiltersSnapshotsMultiIngest(bool shouldCheckReload)
     {
+        //using var igp = SdkFeatures.IngestParallelism.EnableLocal(1);
         GetTestOutputDirectory(clean: true);
         int index = -1;
 
@@ -833,6 +849,7 @@ public partial record AnalyzeTestProject(ITestOutputHelper Output) : AnalyzeTest
 
             if (shouldIngest)
             {
+                using var verify = VerifyAnalysisZipParallelRead();
                 var ingest = await RunAnalyzeTestProjectIngest(analyze, options);
 
                 //if (stage) return;
@@ -928,16 +945,6 @@ public partial record AnalyzeTestProject(ITestOutputHelper Output) : AnalyzeTest
         relatedDefCategories.Count.Should().Be(2);
 
         var refs = view.RightPane.SourceFile.References;
-
-        await page.Search("CodexTestProject.csproj");
-
-        await page.ClickLeftPaneAsync(i => true);
-
-        await page.ClickAsync("<*ProvideCommandLineArgs>");
-
-        view.LeftPane.Content.AsCategorized.Categories[0].Header.Should().Contain("ProvideCommandLineArgs");
-
-        await page.Search("#project");
 
     }
 }

@@ -16,6 +16,8 @@ namespace Codex.Automation.Workflow
     {
         public static Command AddInternalCommand(Arguments arguments, Mode mode)
         {
+            // NOTE: This tool often runs in contexts where we want to switch modes freely so we hide options rather than removing
+            // them to avoid caller needing to micromanage the arguments which are passed.
             return CliModel.Bind<Arguments>(
                 new Command(ProcessCommandName(mode)),
                 m =>
@@ -37,7 +39,7 @@ namespace Codex.Automation.Workflow
                     var ss = new Box<string[]>();
                     var b = new Box<bool>();
 
-                    if (HasFlag(mode, Mode.IndexOnly) || HasFlag(mode, Mode.AnalyzeOnly))
+                    using (m.HideOptionsIfNot(HasFlag(mode, Mode.IndexOnly) || HasFlag(mode, Mode.AnalyzeOnly)))
                     {
                         m.Option(c => ref c.RunCodexInproc, "in-proc-codex", description: "Run codex in-proc instead of as external process", defaultValue: true, isHidden: true);
                     }
@@ -47,18 +49,25 @@ namespace Codex.Automation.Workflow
                         description: "Root directory for all Codex output files (analysis, index, binlogs, etc.)",
                         defaultValue: GetEnvironmentVariableOrDefault("SYSTEM_ARTIFACTSDIRECTORY")?.Then(dir => Path.Combine(dir, "cdxout"))?.AsOptional() ?? default);
 
-                    m.Option(c => ref arguments.RepoSpec, name: "repo", aliases: ["r", "url"], required: true,
-                        description: "Repository name or url with optional commit/tag (format: name<@commit><#qualifier>)");
+                    using (m.HideOptionsIfNot(HasFlag(mode, Mode.AnalyzeOnly) || HasFlag(mode, Mode.BuildOnly)))
+                    {
+                        m.Option(c => ref arguments.RepoSpec, name: "repo", aliases: ["r", "url"], required: true,
+                            description: "Repository name or url with optional commit/tag (format: name<@commit><#qualifier>)");
 
-                    m.Option(c => ref arguments.ExplicitRepoName, name: "repo-name", aliases: ["name", "n"], required: false,
-                        description: "Explicit name of repository (normally not needed if --repo is specified)");
+                        m.Option(c => ref arguments.ExplicitRepoName, name: "repo-name", aliases: ["name", "n"], required: false,
+                            description: "Explicit name of repository (normally not needed if --repo is specified)");
 
-                    // Repository and source control options
-                    m.Option(c => ref c.Commit, name: "commit", aliases: ["ref-spec", "ref", "c"], required: false,
-                        description: "Git commit hash or refspec to analyze (used for unique artifact naming)");
+                        // Repository and source control options
+                        m.Option(c => ref c.Commit, name: "commit", aliases: ["ref-spec", "ref", "c"], required: false,
+                            description: "Git commit hash or refspec to analyze (used for unique artifact naming)");
 
-                    m.Option(c => ref c.ConfigRoot, name: "config-root", required: false,
-                        description: "Directory containing repository-specific configuration files (analyze.settings.json)");
+                        m.Option(c => ref c.ConfigRoot, name: "config-root", required: false,
+                            description: "Directory containing repository-specific configuration files (analyze.settings.json)");
+
+                        m.Option(c => ref c.BinLogDir, name: "bin-log-directory", aliases: "bld", required: false,
+                            description: "Directory containing MSBuild binary logs to analyze",
+                            transform: value => Path.GetFullPath(value));
+                    }
 
                     // General options
                     m.Option(c => ref c.Clean, name: "clean", required: false,
@@ -71,7 +80,7 @@ namespace Codex.Automation.Workflow
                         description: "Output directory for analysis results (defaults to {output}/store)");
 
                     // Build-related options
-                    if (HasFlag(mode, Mode.BuildOnly))
+                    using (m.HideOptionsIfNot(HasFlag(mode, Mode.BuildOnly)))
                     {
                         m.Option(c => ref c.SourcesDirectory, name: "sources-directory", aliases: ["s", "src"], required: false,
                             description: "Directory containing source code to analyze (defaults to {output}/src)");
@@ -107,12 +116,8 @@ namespace Codex.Automation.Workflow
                             });
                     }
 
-                    m.Option(c => ref c.BinLogDir, name: "bin-log-directory", aliases: "bld", required: false,
-                        description: "Directory containing MSBuild binary logs to analyze",
-                        transform: value => Path.GetFullPath(value));
-
                     // Analysis options
-                    if (HasFlag(mode, Mode.AnalyzeOnly) || HasFlag(mode, Mode.Prepare) || HasFlag(mode, Mode.BuildOnly))
+                    using (m.HideOptionsIfNot(HasFlag(mode, Mode.AnalyzeOnly) || HasFlag(mode, Mode.Prepare) || HasFlag(mode, Mode.BuildOnly)))
                     {
                         m.Option(c => ref c.AdditionalCodexArguments, name: "additional-codex-arguments", required: false,
                             description: "Additional arguments to pass to Codex analyze command");
@@ -122,7 +127,7 @@ namespace Codex.Automation.Workflow
                     }
 
                     // Index/Ingest options
-                    if (HasFlag(mode, Mode.IndexOnly) || HasFlag(mode, Mode.Prepare))
+                    using (m.HideOptionsIfNot(HasFlag(mode, Mode.IndexOnly) || HasFlag(mode, Mode.Prepare)))
                     {
                         m.Option(c => ref c.IngestInputDirectory, name: "ingest-input-directory", required: false,
                          description: "Input directory for ingestion (defaults to analyze output directory)");
@@ -134,14 +139,14 @@ namespace Codex.Automation.Workflow
                             description: "Arguments to remove from the default ingest command");
                     }
 
-                    if (HasFlag(mode, Mode.IndexOnly) || HasFlag(mode, Mode.UploadOnly) || HasFlag(mode, Mode.Prepare))
+                    using (m.HideOptionsIfNot(HasFlag(mode, Mode.IndexOnly) || HasFlag(mode, Mode.UploadOnly) || HasFlag(mode, Mode.Prepare)))
                     {
                         m.Option(c => ref c.IngestOutputDirectory, name: "ingest-output-directory", required: false,
                             description: "Output directory for indexed data (defaults to {output}/index)");
                     }
 
                     // Upload options
-                    if (HasFlag(mode, Mode.UploadOnly))
+                    using (m.HideOptionsIfNot(HasFlag(mode, Mode.UploadOnly)))
                     {
                         m.Option(c => ref c.EncryptOutputs, name: "encrypt-outputs", required: false,
                             description: "Encrypt output artifacts with password protection");
@@ -158,6 +163,7 @@ namespace Codex.Automation.Workflow
 
                     // Debug/diagnostic options
                     m.Option(c => ref b.Value, name: "print-env", required: false,
+                        isHidden: true,
                         description: "Print all environment variables for debugging",
                         init: (c, shouldPrint) =>
                         {

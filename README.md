@@ -16,7 +16,7 @@ http://ref12.github.io/Codex
 
 1. Generate wasm binaries
 
-    ` dotnet publish src/Codex.Web.Wasm/Codex.Web.Wasm.csproj -o bin/wasm `
+    ` dotnet publish src/Codex.Web.Wasm/Codex.Web.Wasm.csproj /p:DisableWorkloads=false -o bin/wasm `
 
 2. Generate Codex executable
 

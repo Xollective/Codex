@@ -49,8 +49,6 @@ namespace Codex.Lucene.Search
 
         public bool ApplyStagedFiles { get; set; }
 
-        public bool WriteBlockEntities { get; set; }
-
         public bool DisableIndex { get; set; }
 
         /// <summary>

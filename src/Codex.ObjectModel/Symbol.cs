@@ -126,22 +126,20 @@ namespace Codex
         int ReferenceCount { get; }
 
         [Include(ObjectStage.Analysis)]
-        IReadOnlyList<IDefinitionSymbolExtendedSearchInfo> ExtendedSearchInfo { get; }
+        IDefinitionSymbolExtendedSearchInfo ExtraSearchInfo { get; }
 
         /// <summary>
         /// Additional information to search for extension member search
         /// </summary>
-        IDefinitionSymbolExtensionInfo ExtensionInfo { get; }
+        IDefinitionSymbolExtensionInfo? ExtendedMemberInfo { get; }
     }
 
     public interface IDefinitionSymbolExtendedSearchInfo
     {
-        // TODO: Add extension method info here instead of IDefinitionSymbol.
-
         /// <summary>
         /// The constant value
         /// </summary>
-        long? ConstantValue { get; set; }
+        long? ConstantValue { get; }
     }
 
     /// <summary>

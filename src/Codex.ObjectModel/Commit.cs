@@ -28,11 +28,6 @@ namespace Codex.ObjectModel
         /// The URI of the build where the source was analyzed
         /// </summary>
         string BuildUri { get; }
-
-        /// <summary>
-        /// The alias for this commit
-        /// </summary>
-        string Alias { get; }
     }
 
     /// <summary>

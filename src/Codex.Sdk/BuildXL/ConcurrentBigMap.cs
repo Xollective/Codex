@@ -12,6 +12,17 @@ using System.Linq;
 
 namespace BuildXL.Utilities.Collections
 {
+    public struct KeyValueEntry<TKey, TValue>(TKey key, TValue value)
+    {
+        public readonly TKey Key = key;
+        public TValue Value = value;
+
+        public static implicit operator KeyValuePair<TKey, TValue>(KeyValueEntry<TKey, TValue> e) => new(e.Key, e.Value);
+        public static implicit operator KeyValueEntry<TKey, TValue>(KeyValuePair<TKey, TValue> e) => new(e.Key, e.Value);
+
+        public KeyValuePair<TKey, TValue> ToPair() => this;
+    }
+
     /// <summary>
     /// Wraps a concurrent big set as a map
     /// </summary>
@@ -20,21 +31,10 @@ namespace BuildXL.Utilities.Collections
     [SuppressMessage("Microsoft.Naming", "CA1710:IdentifiersShouldHaveCorrectSuffix")]
     public sealed class ConcurrentBigMap<TKey, TValue> : IStandardReadOnlyDictionary<TKey, TValue>
     {
-        public struct KeyValueEntry(TKey key, TValue value)
-        {
-            public readonly TKey Key = key;
-            public TValue Value = value;
-
-            public static implicit operator KeyValuePair<TKey, TValue>(KeyValueEntry e) => new(e.Key, e.Value);
-            public static implicit operator KeyValueEntry(KeyValuePair<TKey, TValue> e) => new(e.Key, e.Value);
-
-            public KeyValuePair<TKey, TValue> ToPair() => this;
-        }
-
         /// <summary>
         /// The underlying set for the map
         /// </summary>
-        public readonly ConcurrentBigSet<KeyValueEntry> BackingSet;
+        public readonly ConcurrentBigSet<KeyValueEntry<TKey, TValue>> BackingSet;
 
         /// <summary>
         /// The comparer used to comparer key-value pairs
@@ -52,7 +52,7 @@ namespace BuildXL.Utilities.Collections
         /// <param name="backingSet">the backing set for the map</param>
         /// <param name="keyComparer">the comparer for keys</param>
         /// <param name="valueComparer">the comparer for values used in compare exchange operations</param>
-        public ConcurrentBigMap(ConcurrentBigSet<KeyValueEntry> backingSet, IEqualityComparer<TKey> keyComparer = null, IEqualityComparer<TValue> valueComparer = null)
+        public ConcurrentBigMap(ConcurrentBigSet<KeyValueEntry<TKey, TValue>> backingSet, IEqualityComparer<TKey> keyComparer = null, IEqualityComparer<TValue> valueComparer = null)
         {
             Contract.RequiresNotNull(backingSet);
 
@@ -70,11 +70,11 @@ namespace BuildXL.Utilities.Collections
         /// <param name="keyComparer">the comparer for keys</param>
         /// <param name="valueComparer">the comparer for values used in compare exchange operations</param>
         public ConcurrentBigMap(
-            int concurrencyLevel = ConcurrentBigSet<KeyValueEntry>.DefaultConcurrencyLevel,
-            int capacity = ConcurrentBigSet<KeyValueEntry>.DefaultCapacity,
-            int ratio = ConcurrentBigSet<KeyValueEntry>.DefaultBucketToItemsRatio,
+            int concurrencyLevel = ConcurrentBigSet<KeyValueEntry<TKey, TValue>>.DefaultConcurrencyLevel,
+            int capacity = ConcurrentBigSet<KeyValueEntry<TKey, TValue>>.DefaultCapacity,
+            int ratio = ConcurrentBigSet<KeyValueEntry<TKey, TValue>>.DefaultBucketToItemsRatio,
             IEqualityComparer<TKey> keyComparer = null, IEqualityComparer<TValue> valueComparer = null)
-            : this(new ConcurrentBigSet<KeyValueEntry>(concurrencyLevel, capacity, ratio), keyComparer, valueComparer)
+            : this(new ConcurrentBigSet<KeyValueEntry<TKey, TValue>>(concurrencyLevel, capacity, ratio), keyComparer, valueComparer)
         {
         }
 
@@ -88,9 +88,9 @@ namespace BuildXL.Utilities.Collections
         /// <param name="keyComparer">the comparer for keys</param>
         /// <param name="valueComparer">the comparer for values used in compare exchange operations</param>
         public static ConcurrentBigMap<TKey, TValue> Create(
-            int concurrencyLevel = ConcurrentBigSet<KeyValueEntry>.DefaultConcurrencyLevel,
-            int capacity = ConcurrentBigSet<KeyValueEntry>.DefaultCapacity,
-            int ratio = ConcurrentBigSet<KeyValueEntry>.DefaultBucketToItemsRatio,
+            int concurrencyLevel = ConcurrentBigSet<KeyValueEntry<TKey, TValue>>.DefaultConcurrencyLevel,
+            int capacity = ConcurrentBigSet<KeyValueEntry<TKey, TValue>>.DefaultCapacity,
+            int ratio = ConcurrentBigSet<KeyValueEntry<TKey, TValue>>.DefaultBucketToItemsRatio,
             IEnumerable<KeyValuePair<TKey, TValue>> items = null,
             IEqualityComparer<TKey> keyComparer = null, IEqualityComparer<TValue> valueComparer = null)
         {
@@ -111,7 +111,7 @@ namespace BuildXL.Utilities.Collections
             return BackingSet.Validate(new Comparer(m_keyComparer));
         }
 
-        private sealed class Comparer : IEqualityComparer<KeyValueEntry>
+        private sealed class Comparer : IEqualityComparer<KeyValueEntry<TKey, TValue>>
         {
             public readonly IEqualityComparer<TKey> KeyComparer;
 
@@ -120,12 +120,12 @@ namespace BuildXL.Utilities.Collections
                 KeyComparer = keyComparer;
             }
 
-            public bool Equals(KeyValueEntry x, KeyValueEntry y)
+            public bool Equals(KeyValueEntry<TKey, TValue> x, KeyValueEntry<TKey, TValue> y)
             {
                 return KeyComparer.Equals(x.Key, y.Key);
             }
 
-            public int GetHashCode(KeyValueEntry obj)
+            public int GetHashCode(KeyValueEntry<TKey, TValue> obj)
             {
                 return KeyComparer.GetHashCode(obj.Key);
             }
@@ -152,7 +152,7 @@ namespace BuildXL.Utilities.Collections
         /// </summary>
         /// <param name="key">The key of the value to get.</param>
         /// <returns>the result of the get operation</returns>
-        public ConcurrentBigSet<KeyValueEntry>.GetAddOrUpdateResult TryGet(TKey key)
+        public ConcurrentBigSet<KeyValueEntry<TKey, TValue>>.GetAddOrUpdateResult TryGet(TKey key)
         {
             return BackingSet.GetOrAddItem(CreateKeyValuePendingItem(key), allowAdd: false);
         }
@@ -207,7 +207,7 @@ namespace BuildXL.Utilities.Collections
         /// </summary>
         /// <param name="key">the key to add/update</param>
         /// <param name="value">the value</param>
-        public ConcurrentBigSet<KeyValueEntry>.GetAddOrUpdateResult Update(TKey key, TValue value)
+        public ConcurrentBigSet<KeyValueEntry<TKey, TValue>>.GetAddOrUpdateResult Update(TKey key, TValue value)
         {
             return BackingSet.UpdateItem(CreateKeyValuePendingItem(key, value));
         }
@@ -219,7 +219,7 @@ namespace BuildXL.Utilities.Collections
         /// <param name="key">the key to add</param>
         /// <param name="data">additional data used to create the value</param>
         /// <param name="addValueFactory">creates the value to add</param>
-        public ConcurrentBigSet<KeyValueEntry>.GetAddOrUpdateResult GetOrAdd<TData>(TKey key, TData data, Func<TKey, TData, TValue> addValueFactory)
+        public ConcurrentBigSet<KeyValueEntry<TKey, TValue>>.GetAddOrUpdateResult GetOrAdd<TData>(TKey key, TData data, Func<TKey, TData, TValue> addValueFactory)
         {
             var result = BackingSet.GetOrAddItem(
                 new KeyValuePendingItem<DelegateValueCreator<TData>>(
@@ -242,7 +242,7 @@ namespace BuildXL.Utilities.Collections
         /// </summary>
         /// <param name="key">the key to add</param>
         /// <param name="value">the value to add</param>
-        public ConcurrentBigSet<KeyValueEntry>.GetAddOrUpdateResult GetOrAdd(TKey key, TValue value)
+        public ConcurrentBigSet<KeyValueEntry<TKey, TValue>>.GetAddOrUpdateResult GetOrAdd(TKey key, TValue value)
         {
             return BackingSet.GetOrAddItem(CreateKeyValuePendingItem(key, value));
         }
@@ -255,7 +255,7 @@ namespace BuildXL.Utilities.Collections
         /// <param name="data">additional data used to create the value</param>
         /// <param name="addValueFactory">creates the value to add</param>
         /// <param name="updateValueFactory">updates the value</param>
-        public ConcurrentBigSet<KeyValueEntry>.GetAddOrUpdateResult AddOrUpdate<TData>(TKey key, TData data, Func<TKey, TData, TValue> addValueFactory, Func<TKey, TData, TValue, TValue> updateValueFactory)
+        public ConcurrentBigSet<KeyValueEntry<TKey, TValue>>.GetAddOrUpdateResult AddOrUpdate<TData>(TKey key, TData data, Func<TKey, TData, TValue> addValueFactory, Func<TKey, TData, TValue, TValue> updateValueFactory)
         {
             var result = BackingSet.UpdateItem(
                 new KeyValuePendingItem<DelegateValueCreator<TData>>(
@@ -443,7 +443,7 @@ namespace BuildXL.Utilities.Collections
             }
         }
 
-        private readonly struct KeyValuePendingItem<TMapOperation> : IPendingSetItem<KeyValueEntry>
+        private readonly struct KeyValuePendingItem<TMapOperation> : IPendingSetItem<KeyValueEntry<TKey, TValue>>
             where TMapOperation : IMapOperation
         {
             private readonly IEqualityComparer<TKey> m_keyComparer;
@@ -475,7 +475,7 @@ namespace BuildXL.Utilities.Collections
 
             public int HashCode => m_keyComparer.GetHashCode(Key);
 
-            public bool Equals(KeyValueEntry other)
+            public bool Equals(KeyValueEntry<TKey, TValue> other)
             {
                 return m_keyComparer.Equals(Key, other.Key) &&
 
@@ -483,7 +483,7 @@ namespace BuildXL.Utilities.Collections
                     (m_valueComparer == null || m_valueComparer.Equals(ComparisonValue, other.Value));
             }
 
-            public KeyValueEntry CreateOrUpdateItem(KeyValueEntry oldItem, bool hasOldItem, out bool remove)
+            public KeyValueEntry<TKey, TValue> CreateOrUpdateItem(KeyValueEntry<TKey, TValue> oldItem, bool hasOldItem, out bool remove)
             {
                 remove = !m_allowCreate;
                 if (remove)
@@ -491,7 +491,7 @@ namespace BuildXL.Utilities.Collections
                     return default(KeyValuePair<TKey, TValue>);
                 }
 
-                return new KeyValueEntry(Key, ValueCreator.CreateOrUpdateItem(Key, oldItem.Value, hasOldItem, out remove));
+                return new KeyValueEntry<TKey, TValue>(Key, ValueCreator.CreateOrUpdateItem(Key, oldItem.Value, hasOldItem, out remove));
             }
         }
     }

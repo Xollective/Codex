@@ -132,6 +132,11 @@ namespace Codex.Utilities
             return (High, Low);
         }
 
+        public MurmurHash AsMurmur()
+        {
+            return new MurmurHash(low: Low, high: High);
+        }
+
         public static implicit operator ShortHash(MurmurHash hash)
         {
             return new ShortHash(hash.Low, (uint)hash.High);

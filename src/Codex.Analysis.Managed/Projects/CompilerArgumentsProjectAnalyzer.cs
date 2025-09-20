@@ -16,31 +16,16 @@ using static Codex.Build.Tasks.CompilerArgumentsUtilities;
 
 namespace Codex.Analysis.Projects
 {
-    public class CompilerArgumentsProjectAnalyzer : RepoProjectAnalyzerBase
+    public class CompilerArgumentsProjectAnalyzer(Logger logger, string[] searchPaths)
+        : InvocationSolutionProjectAnalyzer(logger, searchPaths)
     {
-        private readonly string[] argsFiles;
-        public bool RequireProjectFilesExist { get; set; }
+        protected override string Description => "compiler args file";
 
-        public CompilerArgumentsProjectAnalyzer(params string[] argsFiles)
-        {
-            this.argsFiles = argsFiles;
-        }
+        protected override string[] FileTypes { get; } = ["*.args.txt"];
 
-        public override void CreateProjects(Repo repo)
+        protected override IEnumerable<InvocationSolutionInfoBuilderBase> GetBuilders(Repo repo, string[] files)
         {
-            if (argsFiles.Length != 0)
-            {
-                SolutionInfoBuilder builder = new SolutionInfoBuilder(argsFiles, repo);
-                if (builder.HasProjects)
-                {
-                    SolutionProjectAnalyzer.AddSolutionProjects
-                        (repo,
-                        () => Task.FromResult(builder.Build()),
-                        workspace: builder.Workspace,
-                        requireProjectExists: RequireProjectFilesExist,
-                        solutionName: builder.SolutionName);
-                }
-            }
+            return [new SolutionInfoBuilder(files, repo)];
         }
 
         private class SolutionInfoBuilder : InvocationSolutionInfoBuilderBase
@@ -58,17 +43,7 @@ namespace Codex.Analysis.Projects
             {
                 foreach (var argsFile in argsFiles)
                 {
-                    if (Directory.Exists(argsFile))
-                    {
-                        foreach (var file in Directory.GetFiles(argsFile, "*.args.txt", SearchOption.AllDirectories))
-                        {
-                            ReadArgsFile(file);
-                        }
-                    }
-                    else if (File.Exists(argsFile))
-                    {
-                        ReadArgsFile(argsFile);
-                    }
+                    ReadArgsFile(argsFile);
                 }
             }
 

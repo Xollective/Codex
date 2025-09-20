@@ -55,6 +55,8 @@ namespace Codex.ObjectModel
     {
         void AddPropertyFromSource<TImpl>(CopyDescriptor<TImpl, TBase> copyDescriptor, IDescriptorProperty targetProperty)
                 where TImpl : TBase;
+
+        bool IsDefaultValue(TBase instance);
     }
 
     [GeneratorExclude]
@@ -167,7 +169,8 @@ namespace Codex.ObjectModel
         private readonly List<IProperty> _properties;
         private List<IProperty> _writableProperties;
 
-        public IReadOnlyList<IBaseSourceProperty<TBase>> Properties => _properties;
+        public IReadOnlyList<IProperty> Properties => _properties;
+        IReadOnlyList<IBaseSourceProperty<TBase>> IBaseDescriptor<TBase>.Properties => Properties;
 
         public int MaxFieldNumber { get; }
         public int PropertyCount { get; }
@@ -247,6 +250,12 @@ namespace Codex.ObjectModel
             {
                 visitor.Visit(this);
             }
+
+            public bool IsDefaultValue(TBase instance)
+            {
+                var value = GetBaseProperty(instance);
+                return EqualityComparer<TFieldBase>.Default.Equals(value, default);
+            }
         }
 
         public record ListProperty<TFieldImpl, TFieldBase>(
@@ -298,6 +307,12 @@ namespace Codex.ObjectModel
             public void Visit(IPropertyVisitor<TImpl, TBase> visitor)
             {
                 visitor.Visit(this);
+            }
+
+            public bool IsDefaultValue(TBase instance)
+            {
+                var value = GetBaseProperty(instance);
+                return value == null || value.Count == 0;
             }
         }
     }

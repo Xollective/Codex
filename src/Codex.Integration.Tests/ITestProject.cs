@@ -24,6 +24,8 @@ public interface ITestProjectData
 
 public class TestProjects
 {
+    public const string RepoOrg = "testprojorg";
+
     public static TestProjectData<ProjectA> A { get; } = new();
     public static TestProjectData<ProjectB> B { get; } = new();
     public static TestProjectData<VBProject> VB { get; } = new();
@@ -34,7 +36,7 @@ public class TestProjects
         public string ProjectDirectory => T.ProjectDirectory;
         public string ProjectPath => T.ProjectPath;
 
-        public string RepoName { get; } = $"testproj/{Name}";
+        public string RepoName { get; } = $"{RepoOrg}/{Name}";
     }
 
     public class VBProject : ITestProject

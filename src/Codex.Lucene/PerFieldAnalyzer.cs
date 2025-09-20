@@ -56,15 +56,13 @@ namespace Codex.Lucene.Search
                         break;
                     case SearchBehavior.Sortword:
                         break;
-                    case SearchBehavior.HierarchicalPath:
+                    case SearchBehavior.PrefixFullName:
                         break;
                     case SearchBehavior.FullText:
                         break;
                     case SearchBehavior.PrefixTerm:
                         break;
                     case SearchBehavior.PrefixShortName:
-                        break;
-                    case SearchBehavior.PrefixFullName:
                         break;
                 }
 

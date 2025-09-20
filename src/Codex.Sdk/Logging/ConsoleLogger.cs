@@ -7,13 +7,11 @@ using System.Threading.Tasks;
 
 namespace Codex.Logging
 {
-    public class ConsoleLogger : TextLogger
+    public class ConsoleLogger(MessageKind minVerbosity = MessageKind.Informational) : TextLogger(Console.Out)
     {
         public static ConsoleLogger Instance { get; } = new();
 
-        public ConsoleLogger() : base(Console.Out)
-        {
-        }
+        public MessageKind MinVerbosity { get; set; } = minVerbosity;
 
         public override void LogError(string error)
         {
@@ -22,7 +20,7 @@ namespace Codex.Logging
 
         public override void LogMessage(string message, MessageKind kind)
         {
-            if (kind == MessageKind.Informational)
+            if (kind >= MinVerbosity)
             {
                 base.LogMessage(message, kind);
             }
