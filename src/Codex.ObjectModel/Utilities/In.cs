@@ -24,6 +24,6 @@ namespace Codex.Utilities
 
     public static class In
     {
-        public static In<T> New<T>(in T value) => new(value);
+        public static In<T> From<T>(in T value) => new(value);
     }
 }

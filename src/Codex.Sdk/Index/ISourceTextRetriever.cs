@@ -48,7 +48,7 @@ namespace Codex.Search
 
                         if (fileInfo is SourceFileInfo sourceFileInfo)
                         {
-                            sourceFileInfo.SourceControlContentId ??= contentResult.Sha;
+                            sourceFileInfo.ContentId ??= contentResult.Sha;
                             sourceFileInfo.DownloadAddress ??= contentResult.Download_Url;
                             sourceFileInfo.WebAddress ??= contentResult.Html_Url;
                         }
@@ -83,9 +83,9 @@ namespace Codex.Search
                 }
                 return true;
             }
-            else if (fileInfo.SourceControlContentId != null)
+            else if (fileInfo.ContentId != null)
             {
-                contentUrl = repoUri.GetApiUrl(fileInfo.SourceControlContentId);
+                contentUrl = repoUri.GetApiUrl(fileInfo.ContentId);
                 return true;
             }
 

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Codex.ObjectModel;
+using Codex.Utilities.Serialization;
 
 namespace Codex
 {
@@ -59,6 +60,6 @@ namespace Codex
         /// The project relative path of the file
         /// </summary>
         [SearchBehavior(SearchBehavior.NormalizedKeyword)]
-        string ProjectRelativePath { get; }
+        NormalizedPath ProjectRelativePath { get; }
     }
 }

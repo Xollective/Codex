@@ -10,13 +10,13 @@ http://ref12.github.io/Codex
 ## Building (in Powershell)
 1. git clone https://github.com/Ref12/Codex
 2. cd Codex
-3. ```./build.ps1``` (can also call `dotnet build Codex.xln` direct;u)
+3. ```./build.ps1``` (can also call `dotnet build Codex.xln` directly)
 
 ## Instructions to generate and run a website
 
 1. Generate wasm binaries
 
-    ` dotnet publish src/Codex.Web.Wasm/Codex.Web.Wasm.csproj -o bin/wasm `
+    ` dotnet publish src/Codex.Web.Wasm/Codex.Web.Wasm.csproj /p:DisableWorkloads=false -o bin/wasm `
 
 2. Generate Codex executable
 

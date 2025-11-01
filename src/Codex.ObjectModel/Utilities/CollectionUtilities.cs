@@ -21,6 +21,22 @@ namespace Codex.Utilities
             return new(array.Array, pool);
         }
 
+        public static IEnumerable<T> Wrap<T>(this IEnumerable<T> items, Action<T> before = null, Action<T> after = null)
+        {
+            foreach (var item in items)
+            {
+                before?.Invoke(item);
+                yield return item;
+                after?.Invoke(item);
+            }
+        }
+
+        public static IEnumerable<T> WhereNotNull<T>(this IEnumerable<T> items)
+            where T : class
+        {
+            return items.Where(s => s != null);
+        }
+
         public static IEnumerable<T> Distinct<T>(this IEnumerable<T> items, HashSet<T> visited)
         {
             return DistinctBy(items, static t => t, visited);
@@ -106,12 +122,12 @@ namespace Codex.Utilities
 
         public static T GetOrDefault<T>(this IReadOnlyList<T> list, int index, T defaultValue = default)
         {
-            if (unchecked((uint)index < (uint)list.Count))
-            {
-                return list[index];
-            }
+            return (unchecked((uint)index < (uint)list.Count)) ? list[index] : defaultValue;
+        }
 
-            return defaultValue;
+        public static T GetOrDefault<T>(this ReadOnlySpan<T> list, int index, T defaultValue = default)
+        {
+            return (unchecked((uint)index < (uint)list.Length)) ? list[index] : defaultValue;
         }
 
         public static void Add<TKey, TValue>(this IDictionary<TKey, TValue> map, IEnumerable<KeyValuePair<TKey, TValue>> entries)
@@ -205,6 +221,11 @@ namespace Codex.Utilities
             return SelectList(items, static (item, index, selector) => selector(item), selector);
         }
 
+        public static IReadOnlyList<TResult> SelectList<T, TResult>(this IReadOnlyList<T> items, Func<T, int, TResult> selector)
+        {
+            return SelectList(items, static (item, index, selector) => selector(item, index), selector);
+        }
+
         public static IReadOnlyList<TResult> SelectManyList<T, TResult>(this IReadOnlyList<T> items, int expansionFactor, Func<(T Item, int SubIndex), TResult> selector)
         {
             var rangeList = new RangeList(new Extent(0, items.Count * expansionFactor));
@@ -253,6 +274,11 @@ namespace Codex.Utilities
             return result;
         }
 
+        public static IReadOnlyList<(T Item, int Index)> WithIndicesList<T>(this IReadOnlyList<T> items)
+        {
+            return items.SelectList((item, index) => (item, index));
+        }
+
         public static IEnumerable<(T Item, int Index)> WithIndices<T>(this IEnumerable<T> items)
         {
             int index = 0;
@@ -261,6 +287,21 @@ namespace Codex.Utilities
                 yield return (item, index);
                 index++;
             }
+        }
+
+        public static bool TryFind<T, TData>(this IEnumerable<T> items, TData data, Func<T, TData, bool> predicate, out T value)
+        {
+            foreach (var item in items)
+            {
+                if (predicate(item, data))
+                {
+                    value = item;
+                    return true;
+                }
+            }
+
+            value = default;
+            return false;
         }
 
         public static void ForEachIndex<T>(this IEnumerable<T> items, Action<(T Item, int Index)> action)

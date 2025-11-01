@@ -148,6 +148,41 @@ public static partial class JsonSerializationUtilities
         return type;
     }
 
+    public static void ForceSkip(this ref Utf8JsonReader reader)
+    {
+        if (reader.TrySkip())
+        {
+            return;
+        }
+
+        if (reader.TokenType == JsonTokenType.StartObject ||
+            reader.TokenType == JsonTokenType.StartArray)
+        {
+            int depth = 0;
+            do
+            {
+                if (reader.TokenType == JsonTokenType.StartObject ||
+                    reader.TokenType == JsonTokenType.StartArray)
+                {
+                    depth++;
+                }
+                else if (reader.TokenType == JsonTokenType.EndObject ||
+                         reader.TokenType == JsonTokenType.EndArray)
+                {
+                    depth--;
+                }
+            } while (depth > 0 && reader.Read());
+
+            // Now positioned at the matching EndObject/EndArray.
+            reader.Read(); // advance once more to move past it
+        }
+        else
+        {
+            // primitives: string, number, bool, null, property name
+            reader.Read();
+        }
+    }
+
     private class FilteringJsonTypeResolver : DefaultJsonTypeInfoResolver
     {
         public ObjectStage? Stage { get; }

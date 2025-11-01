@@ -102,6 +102,12 @@ namespace Codex.Utilities
             return new ListSegment<T>(List, sliceExtent);
         }
 
+        public ListSegment<T> ExtentUnion(ListSegment<T> other)
+        {
+            Contract.Assert(List == other.List);
+            return new ListSegment<T>(List, GetExtent().Union(other.GetExtent()));
+        }
+
         #region IReadOnlyList<T> Members
 
         /// <summary>

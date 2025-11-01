@@ -34,7 +34,7 @@ public record CodexProgramBase : OperationBase
     public async Task<int> RunAsync(params string[] args)
     {
         Arguments = args;
-        if (!MiscUtilities.TryGetEnvironmentVariable("CODEX_DISABLE_PRINT_ARGS", out _))
+        if (MiscUtilities.TryGetEnvironmentVariable("CODEX_ENABLE_PRINT_ARGS", out _))
         {
             Console.WriteLine(Environment.CommandLine);
             Console.WriteLine("Args");

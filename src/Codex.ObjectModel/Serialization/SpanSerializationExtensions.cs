@@ -25,6 +25,7 @@ namespace Codex.Utilities.Serialization
     public static class SpanSerializationExtensions
     {
         public static Span<T> Truncate<T>(this Span<T> span, int maxLength) => span.Length <= maxLength ? span : span.Slice(0, maxLength);
+        public static Span<T> Truncate<T>(this Span<T> span, long maxLength) => span.Length <= maxLength ? span : span.Slice(0, (int)maxLength);
 
         public static Span<T> Slice<T>(this Span<T> span, Extent extent) => span.Slice(extent.Start, extent.Length);
         public static ReadOnlySpan<T> Slice<T>(this ReadOnlySpan<T> span, Extent extent) => span.Slice(extent.Start, extent.Length);
@@ -108,15 +109,12 @@ namespace Codex.Utilities.Serialization
         }
 
         public static ReadOnlySpanScope<T> AsScope<T>(this ReadOnlySpan<T> span)
-            where T : unmanaged
             => ReadOnlySpanScope<T>.FromSpan(span);
 
         public static ReadOnlySpanScope<T> AsReadOnlyScope<T>(this Span<T> span)
-            where T : unmanaged
             => ReadOnlySpanScope<T>.FromSpan(span);
 
         public static SpanScope<T> AsScope<T>(this Span<T> span)
-            where T : unmanaged
             => SpanScope<T>.FromSpan(span);
 
         /// <nodoc />

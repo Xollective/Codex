@@ -148,7 +148,7 @@ namespace Codex.ObjectModel
         /// Unique id for the source file content as defined by the source control provider (i.e. git SHA)
         /// </summary>
         [SearchBehavior(SearchBehavior.NormalizedKeyword)]
-        string SourceControlContentId { get; }
+        string ContentId { get; }
 
         /// <summary>
         /// The number of lines in the file
@@ -255,6 +255,11 @@ namespace Codex.ObjectModel
     {
         [SearchBehavior(SearchBehavior.Term)]
         int Id { get; }
+
+        /// <summary>
+        /// The chunk index
+        /// </summary>
+        int Index { get; }
 
         int StartLineNumber { get; }
     }

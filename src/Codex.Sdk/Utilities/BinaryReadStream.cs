@@ -13,7 +13,7 @@ public static class BinaryReadStream
     }
 }
 
-public class BinaryReadStream<TData> : Stream
+public class BinaryReadStream<TData> : ReadStream
 {
     public delegate int BinaryRead(in TData data, Span<byte> target, long offset, bool initialize);
 
@@ -34,17 +34,13 @@ public class BinaryReadStream<TData> : Stream
         Length = parts.Sum(p => p.Length);
     }
 
-    public override bool CanRead => true;
-
     public override bool CanSeek => true;
-
-    public override bool CanWrite => false;
 
     public override long Length { get; }
 
     public override long Position
     {
-        get => _position; 
+        get => _position;
         set => Seek(value, SeekOrigin.Begin);
     }
 
@@ -86,12 +82,7 @@ public class BinaryReadStream<TData> : Stream
         _initialize = true;
     }
 
-    public override int Read(byte[] buffer, int offset, int count)
-    {
-        return Read(buffer.AsSpan(0, buffer.Length));
-    }
-
-    public override int Read(Span<byte> buffer)
+    public override int ReadCore(Span<byte> buffer)
     {
         int read = 0;
         var remaining = buffer.Length;
@@ -109,9 +100,9 @@ public class BinaryReadStream<TData> : Stream
             var adjustedCount = (int)Math.Min(remaining, partRemaining);
 
             var iterationRead = activePart.Read(
-                activePart.Data, 
-                buffer.Slice(read, adjustedCount), 
-                offset: _activeOffset, 
+                activePart.Data,
+                buffer.Slice(read, adjustedCount),
+                offset: _activeOffset,
                 initialize: _initialize | _activeOffset == 0);
             _initialize = false;
 
@@ -133,10 +124,4 @@ public class BinaryReadStream<TData> : Stream
         _position += read;
         return read;
     }
-
-    public override void SetLength(long value) => throw new NotSupportedException();
-
-    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
-
-    public override void Flush() { }
 }

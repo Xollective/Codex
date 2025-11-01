@@ -188,21 +188,6 @@ namespace Codex.Utilities
             return sb.ToString();
         }
 
-        /// <summary>
-        /// This makes sure that a filePath that can be outside the folder is replanted inside the folder.
-        /// This is important when a project references a file outside the project cone and we want to
-        /// display it as if it is inside the project.
-        /// </summary>
-        public static string GetFullPathInFolderCone(string folder, string filePath)
-        {
-            if (!Path.IsPathRooted(filePath))
-            {
-                filePath = Path.Combine(folder, filePath);
-            }
-
-            return GetFullPathInFolderConeForRootedFilePath(folder, filePath);
-        }
-
         public static bool IsSelfOrParentOf(this string folder, string filePath)
         {
             var folderSpan = folder.TrimEnd(Path.DirectorySeparatorChar);
@@ -215,36 +200,6 @@ namespace Codex.Utilities
             if (filePath[folderSpan.Length] == Path.DirectorySeparatorChar) return true;
 
             return false;
-        }
-
-        private static string GetFullPathInFolderConeForRootedFilePath(string folder, string rootedFilePath)
-        {
-            folder = Path.GetFullPath(folder);
-            rootedFilePath = Path.GetFullPath(rootedFilePath);
-            if (rootedFilePath.StartsWith(folder, StringComparison.OrdinalIgnoreCase))
-            {
-                return rootedFilePath;
-            }
-
-            var folderParts = folder.Split(DirectorySeparatorChar);
-            var rootedFilePathParts = rootedFilePath.Split(DirectorySeparatorChar);
-            int commonParts = 0;
-            for (int i = 0; i < Math.Min(folderParts.Length, rootedFilePathParts.Length); i++)
-            {
-                if (string.Equals(folderParts[i], rootedFilePathParts[i], StringComparison.OrdinalIgnoreCase))
-                {
-                    commonParts++;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            var relativePath = string.Join(DirectorySeparator, rootedFilePathParts.Skip(commonParts));
-            relativePath = relativePath.Replace(":", "");
-            rootedFilePath = Path.Combine(folder, relativePath);
-            return rootedFilePath;
         }
     }
 }

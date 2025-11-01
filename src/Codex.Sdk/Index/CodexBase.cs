@@ -469,7 +469,7 @@ namespace Codex.Search
                         if (SourceControlUri.TryParse(result.RepositoryName, out var repoUri, checkRepoNameFormat: true)
                             && sourceFile.Info.WebAddress == null
                             // Don't add files which are not apart of source control
-                            && sourceFile.Info.SourceControlContentId != null
+                            && sourceFile.Info.ContentId != null
                             && sourceFile.Info.RepoRelativePath != null
                             // Don't add web access link for files not under source tree (i.e. [Metadata])
                             && !sourceFile.Info.RepoRelativePath.StartsWith("["))

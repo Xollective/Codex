@@ -70,12 +70,13 @@ public record QueryAugmentingHttpClientWrapper(IHttpClient Inner, bool FileMode 
 
     private Uri? GetAugmentedUri(Uri? uri)
     {
-        if (FileMode && uri?.OriginalString.Contains('?') == true)
-        {
-            uri = new Uri(uri.OriginalString.Replace('?', '&'), UriKind.RelativeOrAbsolute);
-        }
-
         if (uri == null) return uri;
+        
+        if (FileMode && uri.OriginalString.SplitAtFirstIndexOf("?", out var prefix, out var suffix))
+        {
+            //uri = new Uri(uri.OriginalString.Replace('?', '&'), UriKind.RelativeOrAbsolute);
+            uri = new Uri($"{prefix}&{PathUtilities.PathSanitizeQuery(suffix)}", UriKind.RelativeOrAbsolute);
+        }
 
         return BaseAddress.Combine(uri.ToString(), forcePreserveBaseQuery: true);
     }

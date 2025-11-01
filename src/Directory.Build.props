@@ -9,6 +9,8 @@
     <TargetFramework Condition="'$(MSBuildProjectName)' == 'Codex.Web.WasmNext'">net8.0</TargetFramework>
     <TargetFramework Condition="'$(MSBuildProjectName)' == 'Codex.Web.Host'">net8.0</TargetFramework>
     <TargetFramework Condition="'$(MSBuildProjectName)' == 'Codex.Web.Host.Wpf'">net8.0-windows</TargetFramework>
+    <BuildLogicDir>$(MSBuildThisFileDirectory)/src/build</BuildLogicDir>
+    <BuildTasksDir>$(MSBuildThisFileDirectory)/src/Codex.Build.Tasks</BuildTasksDir>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -18,4 +20,26 @@
     <AvaloniaEditVersion>11.0.0</AvaloniaEditVersion>
     <IsLocalDebug Condition="'$(Configuration)' == 'Debug' AND '$(TF_BUILD)' != 'True'">true</IsLocalDebug>
   </PropertyGroup>
+
+  
+  <ItemGroup>
+    <ExcludedAnalyzer_AssemblyName Include="System.Text.RegularExpressions.Generator" />
+    <ExcludedAnalyzer_AssemblyName Include="System.Text.Json.SourceGeneration" />
+    <!--<ExcludedAnalyzer_AssemblyName Include="Microsoft.Interop.SourceGeneration" />-->
+    <ExcludedAnalyzer_AssemblyName Include="Microsoft.Interop.LibraryImportGenerator" />
+    <ExcludedAnalyzer_AssemblyName Condition="'$(UsingMicrosoftNETSdkWebAssembly)' != 'true'" Include="Microsoft.Interop.JavaScript.JSImportGenerator" />
+    <ExcludedAnalyzer_AssemblyName Include="Microsoft.Interop.ComInterfaceGenerator" />
+  </ItemGroup>
+  
+  <Target Name="_Remove_ExcludedAnalyzers" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <ExcludedAnalyzer_AssemblyName AssemblyName="%(Identity)" />
+      <ExcludedAnalyzer_NugetPackageId NugetPackageId="%(Identity)" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Analyzer Remove="@(ExcludedAnalyzer_AssemblyName)" MatchOnMetadata="AssemblyName" />
+      <Analyzer Remove="@(ExcludedAnalyzer_NugetPackageId)" MatchOnMetadata="NugetPackageId" />
+    </ItemGroup>
+  </Target>
 </Project>

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using Codex.Logging;
 using Codex.Lucene.Framework;
 using Codex.Sdk;
+using Codex.Sdk.Storage;
 using Codex.Storage;
 using Codex.Storage.BlockLevel;
 using Codex.Utilities;
@@ -165,7 +166,7 @@ namespace Codex.Lucene.Search
             });
 
             var deletedDbFiles = Configuration.IdTracker.GetPendingDeletions()
-                .Select(d => PathUtilities.UriCombine(Configuration.DatabaseRelativeDirectory, d, normalize: true))
+                .Select(d => PathUtilities.UriCombine(IndexDirectoryLayout.DatabaseRelativeDirectory, d, normalize: true))
                 .ToArray();
 
             if (deletedDbFiles.Length > 0)
@@ -178,7 +179,7 @@ namespace Codex.Lucene.Search
             if (Configuration.StagingDirectory != null && Configuration.ApplyStagedFiles)
             {
                 await SdkPathUtilities.CopyFilesRecursiveAsync(
-                    sourceDirectory: Configuration.StagingOverlayDirectory,
+                    sourceDirectory: Configuration.StagingOverlayDirectory.Directory,
                     targetDirectory: Configuration.Directory,
                     deletedRelativeTargetFiles: allDeletedFiles,
 

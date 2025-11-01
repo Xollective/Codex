@@ -187,16 +187,16 @@ namespace Codex.ObjectModel.Implementation
             public static IMappingField<IDefinitionSearchModel, string> StoredFilterTag { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<string>();
             public static ISortField<IDefinitionSearchModel, int> StableId { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<int>();
             public static ISortField<IDefinitionSearchModel, string> ProjectId { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<string>();
-            public static IMappingField<IDefinitionSearchModel, string> ExtensionProjectId { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<string>();
             public static IMappingField<IDefinitionSearchModel, string> Id { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<string>();
             public static IMappingField<IDefinitionSearchModel, bool> ExcludeFromDefaultSearch { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<bool>();
             public static IMappingField<IDefinitionSearchModel, string> ContainerTypeSymbolId { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<string>();
-            public static IMappingField<IDefinitionSearchModel, long> ConstantValue { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<long>();
             public static IMappingField<IDefinitionSearchModel, string> ContainerQualifiedName { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<string>();
+            public static IMappingField<IDefinitionSearchModel, long> ConstantValue { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<long>();
+            public static IMappingField<IDefinitionSearchModel, string> ExtensionProjectId { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<string>();
+            public static IMappingField<IDefinitionSearchModel, string> ExtensionContainerQualifiedName { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<string>();
             public static ISortField<IDefinitionSearchModel, StringEnum<SymbolKinds>> Kind { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<StringEnum<SymbolKinds>>();
             public static IMappingField<IDefinitionSearchModel, string> ShortName { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<string>();
             public static IMappingField<IDefinitionSearchModel, string> AbbreviatedName { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<string>();
-            public static IMappingField<IDefinitionSearchModel, string> ExtensionContainerQualifiedName { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<string>();
             public static IMappingField<IDefinitionSearchModel, string> Modifiers { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<string>();
             public static IMappingField<IDefinitionSearchModel, string> Keywords { get; } = Codex.ObjectModel.SearchTypes.Definition.GetMappingField<string>();
         }
@@ -239,6 +239,8 @@ namespace Codex.ObjectModel.Implementation
             public static ISortField<IReferenceSearchModel, int> StableId { get; } = Codex.ObjectModel.SearchTypes.Reference.GetMappingField<int>();
             public static ISortField<IReferenceSearchModel, string> RepositoryName { get; } = Codex.ObjectModel.SearchTypes.Reference.GetMappingField<string>();
             public static ISortField<IReferenceSearchModel, string> ReferencingProjectId { get; } = Codex.ObjectModel.SearchTypes.Reference.GetMappingField<string>();
+            public static IMappingField<IReferenceSearchModel, string> ProjectRelativePath { get; } = Codex.ObjectModel.SearchTypes.Reference.GetMappingField<string>();
+            public static IMappingField<IReferenceSearchModel, string> Extension { get; } = Codex.ObjectModel.SearchTypes.Reference.GetMappingField<string>();
             public static IMappingField<IReferenceSearchModel, string> ProjectId { get; } = Codex.ObjectModel.SearchTypes.Reference.GetMappingField<string>();
             public static IMappingField<IReferenceSearchModel, string> Id { get; } = Codex.ObjectModel.SearchTypes.Reference.GetMappingField<string>();
             public static ISortField<IReferenceSearchModel, int> Rank { get; } = Codex.ObjectModel.SearchTypes.Reference.GetMappingField<int>();
@@ -272,6 +274,11 @@ namespace Codex.ObjectModel.Implementation
             public static IMappingField<ITextSourceSearchModel, string> StoredFilterTag { get; } = Codex.ObjectModel.SearchTypes.TextSource.GetMappingField<string>();
             public static ISortField<ITextSourceSearchModel, int> StableId { get; } = Codex.ObjectModel.SearchTypes.TextSource.GetMappingField<int>();
             public static IMappingField<ITextSourceSearchModel, int> ChunkId { get; } = Codex.ObjectModel.SearchTypes.TextSource.GetMappingField<int>();
+            public static ISortField<ITextSourceSearchModel, int> Index { get; } = Codex.ObjectModel.SearchTypes.TextSource.GetMappingField<int>();
+            public static ISortField<ITextSourceSearchModel, string> RepositoryName { get; } = Codex.ObjectModel.SearchTypes.TextSource.GetMappingField<string>();
+            public static ISortField<ITextSourceSearchModel, string> ProjectId { get; } = Codex.ObjectModel.SearchTypes.TextSource.GetMappingField<string>();
+            public static IMappingField<ITextSourceSearchModel, string> ProjectRelativePath { get; } = Codex.ObjectModel.SearchTypes.TextSource.GetMappingField<string>();
+            public static IMappingField<ITextSourceSearchModel, string> Extension { get; } = Codex.ObjectModel.SearchTypes.TextSource.GetMappingField<string>();
         }
     }
 
@@ -537,6 +544,7 @@ namespace Codex.ObjectModel.Implementation
         }
 
         public int Id { get; set; }
+        public int Index { get; set; }
         public int StartLineNumber { get; set; }
     }
 
@@ -681,7 +689,6 @@ namespace Codex.ObjectModel.Implementation
             return new CommitInfo();
         }
 
-        public string Alias { get; set; }
         public string BuildUri { get; set; }
         public DateTime DateCommitted { get; set; }
         public DateTime DateUploaded { get; set; }
@@ -875,7 +882,32 @@ namespace Codex.ObjectModel.Implementation
 
         IReadOnlyList<string> IDefinitionSymbol.Modifiers { get => CoerceReadOnly(ref this.m_Modifiers); }
 
+        private string m_AbbreviatedName;
         private List<string> m_Modifiers;
+        IReadOnlyList<string> IDefinitionSymbol.Keywords { get => CoerceReadOnly(ref this.m_Keywords); }
+        public Nullable<Extent<IDefinitionSymbol>> JsonRange { get; set; }
+
+        public List<string> Keywords
+        {
+            get => Coerce(ref this.m_Keywords);
+            set
+            {
+                this.m_Keywords = value;
+            }
+        }
+
+        public Glyph Glyph { get; set; }
+
+        IDefinitionSymbolExtendedSearchInfo IDefinitionSymbol.ExtraSearchInfo { get => ExtraSearchInfo; }
+        public DefinitionSymbolExtendedSearchInfo ExtraSearchInfo { get; set; }
+
+        IDefinitionSymbolExtensionInfo IDefinitionSymbol.ExtendedMemberInfo { get => ExtendedMemberInfo; }
+        public DefinitionSymbolExtensionInfo ExtendedMemberInfo { get; set; }
+        public bool ExcludeFromDefaultSearch { get; set; }
+        public string DeclarationName { get; set; }
+        public SymbolId ContainerTypeSymbolId { get; set; }
+        public string ContainerQualifiedName { get; set; }
+
         public List<string> Modifiers
         {
             get => Coerce(ref this.m_Modifiers);
@@ -885,41 +917,7 @@ namespace Codex.ObjectModel.Implementation
             }
         }
 
-        IReadOnlyList<string> IDefinitionSymbol.Keywords { get => CoerceReadOnly(ref this.m_Keywords); }
-
         private List<string> m_Keywords;
-        public Nullable<Extent<IDefinitionSymbol>> JsonRange { get; set; }
-        public Glyph Glyph { get; set; }
-
-        IDefinitionSymbolExtensionInfo IDefinitionSymbol.ExtensionInfo { get => ExtensionInfo; }
-        public DefinitionSymbolExtensionInfo ExtensionInfo { get; set; }
-
-        IReadOnlyList<IDefinitionSymbolExtendedSearchInfo> IDefinitionSymbol.ExtendedSearchInfo { get => CoerceReadOnly(ref this.m_ExtendedSearchInfo); }
-
-        private List<DefinitionSymbolExtendedSearchInfo> m_ExtendedSearchInfo;
-        public List<DefinitionSymbolExtendedSearchInfo> ExtendedSearchInfo
-        {
-            get => Coerce(ref this.m_ExtendedSearchInfo);
-            set
-            {
-                this.m_ExtendedSearchInfo = value;
-            }
-        }
-
-        public bool ExcludeFromDefaultSearch { get; set; }
-        public string DeclarationName { get; set; }
-        public SymbolId ContainerTypeSymbolId { get; set; }
-        public string ContainerQualifiedName { get; set; }
-
-        private string m_AbbreviatedName;
-        public List<string> Keywords
-        {
-            get => Coerce(ref this.m_Keywords);
-            set
-            {
-                this.m_Keywords = value;
-            }
-        }
     }
 
     public partial class DefinitionSymbolExtendedSearchInfo : EntityBase, IDefinitionSymbolExtendedSearchInfo, IPropertyTarget<IDefinitionSymbolExtendedSearchInfo, DefinitionSymbolExtendedSearchInfo>, IEntity<DefinitionSymbolExtendedSearchInfo, IDefinitionSymbolExtendedSearchInfo, DefinitionSymbolExtendedSearchInfoDescriptor>
@@ -1408,7 +1406,7 @@ namespace Codex.ObjectModel.Implementation
             return new ProjectFileScopeEntity();
         }
 
-        public string ProjectRelativePath { get; set; }
+        public NormalizedPath ProjectRelativePath { get; set; }
         public string ProjectId { get; set; }
     }
 
@@ -2020,10 +2018,10 @@ namespace Codex.ObjectModel.Implementation
             return new SourceControlFileInfo();
         }
 
+        public string ContentId { get; set; }
         public SourceEncodingInfo EncodingInfo { get; set; }
         public int Lines { get; set; }
         public int Size { get; set; }
-        public string SourceControlContentId { get; set; }
     }
 
     public partial class SourceFile : SourceFileBase, ISourceFile, IPropertyTarget<ISourceFile, SourceFile>, IEntity<SourceFile, ISourceFile, SourceFileDescriptor>
@@ -2142,13 +2140,13 @@ namespace Codex.ObjectModel.Implementation
         public string Language { get; set; }
         public string DownloadAddress { get; set; }
         public string CommitId { get; set; }
-        public SourceEncodingInfo EncodingInfo { get; set; }
-        public int Size { get; set; }
+        public string ContentId { get; set; }
         public int Lines { get; set; }
+        public SourceEncodingInfo EncodingInfo { get; set; }
 
         IPropertyMap ISourceFileInfo.Properties { get => Properties; }
         public string Qualifier { get; set; }
-        public string SourceControlContentId { get; set; }
+        public int Size { get; set; }
         public string WebAddress { get; set; }
     }
 
@@ -2361,7 +2359,7 @@ namespace Codex.ObjectModel.Implementation
         }
 
         public RepoAccess Access { get; set; }
-        public bool ExplicitGroupsOnly { get; set; }
+        public Nullable<bool> ExplicitGroupsOnly { get; set; }
         public ImmutableSortedSet<string> Groups { get; set; } = System.Collections.Immutable.ImmutableSortedSet<string>.Empty;
     }
 
@@ -3471,34 +3469,35 @@ namespace Codex.ObjectModel.Implementation
         public partial class ChunkReferenceDescriptor : SingletonDescriptorBase<ChunkReference, IChunkReference, ChunkReferenceDescriptor>, ICreate<ChunkReferenceDescriptor>
         {
             static ChunkReferenceDescriptor ICreate<ChunkReferenceDescriptor>.Create() => new ChunkReferenceDescriptor();
-            ChunkReferenceDescriptor() : base(34, 2)
+            ChunkReferenceDescriptor() : base(35, 3)
             {
                 Add(new Property<int, int>(33, "Id", e => e.Id, (e, v) => e.Id = v));
-                Add(new Property<int, int>(34, "StartLineNumber", e => e.StartLineNumber, (e, v) => e.StartLineNumber = v));
+                Add(new Property<int, int>(34, "Index", e => e.Index, (e, v) => e.Index = v));
+                Add(new Property<int, int>(35, "StartLineNumber", e => e.StartLineNumber, (e, v) => e.StartLineNumber = v));
             }
         }
 
         public partial class ClassificationSpanDescriptor : SingletonDescriptorBase<ClassificationSpan, IClassificationSpan, ClassificationSpanDescriptor>, ICreate<ClassificationSpanDescriptor>
         {
             static ClassificationSpanDescriptor ICreate<ClassificationSpanDescriptor>.Create() => new ClassificationSpanDescriptor();
-            ClassificationSpanDescriptor() : base(40, 6)
+            ClassificationSpanDescriptor() : base(41, 6)
             {
-                Add(new Property<StringEnum<ClassificationName>, StringEnum<ClassificationName>>(37, "Classification", e => e.Classification, (e, v) => e.Classification = v));
-                Add(new Property<int, int>(38, "DefaultClassificationColor", e => e.DefaultClassificationColor, (e, v) => e.DefaultClassificationColor = v));
-                Add(new Property<int, int>(35, "Length", e => e.Length, (e, v) => e.Length = v));
-                Add(new Property<int, int>(39, "LocalGroupId", e => e.LocalGroupId, (e, v) => e.LocalGroupId = v));
-                Add(new Property<int, int>(36, "Start", e => e.Start, (e, v) => e.Start = v));
-                Add(new Property<int, int>(40, "SymbolDepth", e => e.SymbolDepth, (e, v) => e.SymbolDepth = v));
+                Add(new Property<StringEnum<ClassificationName>, StringEnum<ClassificationName>>(38, "Classification", e => e.Classification, (e, v) => e.Classification = v));
+                Add(new Property<int, int>(39, "DefaultClassificationColor", e => e.DefaultClassificationColor, (e, v) => e.DefaultClassificationColor = v));
+                Add(new Property<int, int>(36, "Length", e => e.Length, (e, v) => e.Length = v));
+                Add(new Property<int, int>(40, "LocalGroupId", e => e.LocalGroupId, (e, v) => e.LocalGroupId = v));
+                Add(new Property<int, int>(37, "Start", e => e.Start, (e, v) => e.Start = v));
+                Add(new Property<int, int>(41, "SymbolDepth", e => e.SymbolDepth, (e, v) => e.SymbolDepth = v));
             }
         }
 
         public partial class ClassificationStyleDescriptor : SingletonDescriptorBase<ClassificationStyle, IClassificationStyle, ClassificationStyleDescriptor>, ICreate<ClassificationStyleDescriptor>
         {
             static ClassificationStyleDescriptor ICreate<ClassificationStyleDescriptor>.Create() => new ClassificationStyleDescriptor();
-            ClassificationStyleDescriptor() : base(42, 3)
+            ClassificationStyleDescriptor() : base(43, 3)
             {
-                Add(new Property<int, int>(41, "Color", e => e.Color, (e, v) => e.Color = v));
-                Add(new Property<bool, bool>(42, "Italic", e => e.Italic, (e, v) => e.Italic = v));
+                Add(new Property<int, int>(42, "Color", e => e.Color, (e, v) => e.Color = v));
+                Add(new Property<bool, bool>(43, "Italic", e => e.Italic, (e, v) => e.Italic = v));
                 Add(new Property<StringEnum<ClassificationName>, StringEnum<ClassificationName>>(28, "Name", e => e.Name, (e, v) => e.Name = v));
             }
         }
@@ -3506,10 +3505,10 @@ namespace Codex.ObjectModel.Implementation
         public partial class CodeSymbolDescriptor : SingletonDescriptorBase<CodeSymbol, ICodeSymbol, CodeSymbolDescriptor>, ICreate<CodeSymbolDescriptor>
         {
             static CodeSymbolDescriptor ICreate<CodeSymbolDescriptor>.Create() => new CodeSymbolDescriptor();
-            CodeSymbolDescriptor() : base(43, 3)
+            CodeSymbolDescriptor() : base(44, 3)
             {
                 Add(new Property<SymbolId, SymbolId>(33, "Id", e => e.Id, (e, v) => e.Id = v));
-                Add(new Property<StringEnum<SymbolKinds>, StringEnum<SymbolKinds>>(43, "Kind", e => e.Kind, (e, v) => e.Kind = v));
+                Add(new Property<StringEnum<SymbolKinds>, StringEnum<SymbolKinds>>(44, "Kind", e => e.Kind, (e, v) => e.Kind = v));
                 Add(new Property<string, string>(1, "ProjectId", e => e.ProjectId, (e, v) => e.ProjectId = v));
             }
         }
@@ -3517,11 +3516,10 @@ namespace Codex.ObjectModel.Implementation
         public partial class CommitDescriptor : SingletonDescriptorBase<Commit, ICommit, CommitDescriptor>, ICreate<CommitDescriptor>
         {
             static CommitDescriptor ICreate<CommitDescriptor>.Create() => new CommitDescriptor();
-            CommitDescriptor() : base(49, 8)
+            CommitDescriptor() : base(49, 7)
             {
-                Add(new Property<string, string>(45, "Alias", e => e.Alias, (e, v) => e.Alias = v));
                 Add(new Property<string, string>(46, "BuildUri", e => e.BuildUri, (e, v) => e.BuildUri = v));
-                Add(new Property<string, string>(44, "CommitId", e => e.CommitId, (e, v) => e.CommitId = v));
+                Add(new Property<string, string>(45, "CommitId", e => e.CommitId, (e, v) => e.CommitId = v));
                 Add(new Property<DateTime, DateTime>(47, "DateCommitted", e => e.DateCommitted, (e, v) => e.DateCommitted = v));
                 Add(new Property<DateTime, DateTime>(48, "DateUploaded", e => e.DateUploaded, (e, v) => e.DateUploaded = v));
                 Add(new Property<string, string>(26, "Description", e => e.Description, (e, v) => e.Description = v));
@@ -3533,11 +3531,10 @@ namespace Codex.ObjectModel.Implementation
         public partial class CommitInfoDescriptor : SingletonDescriptorBase<CommitInfo, ICommitInfo, CommitInfoDescriptor>, ICreate<CommitInfoDescriptor>
         {
             static CommitInfoDescriptor ICreate<CommitInfoDescriptor>.Create() => new CommitInfoDescriptor();
-            CommitInfoDescriptor() : base(48, 6)
+            CommitInfoDescriptor() : base(48, 5)
             {
-                Add(new Property<string, string>(45, "Alias", e => e.Alias, (e, v) => e.Alias = v));
                 Add(new Property<string, string>(46, "BuildUri", e => e.BuildUri, (e, v) => e.BuildUri = v));
-                Add(new Property<string, string>(44, "CommitId", e => e.CommitId, (e, v) => e.CommitId = v));
+                Add(new Property<string, string>(45, "CommitId", e => e.CommitId, (e, v) => e.CommitId = v));
                 Add(new Property<DateTime, DateTime>(47, "DateCommitted", e => e.DateCommitted, (e, v) => e.DateCommitted = v));
                 Add(new Property<DateTime, DateTime>(48, "DateUploaded", e => e.DateUploaded, (e, v) => e.DateUploaded = v));
                 Add(new Property<string, string>(0, "RepositoryName", e => e.RepositoryName, (e, v) => e.RepositoryName = v));
@@ -3547,9 +3544,9 @@ namespace Codex.ObjectModel.Implementation
         public partial class CommitScopeEntityDescriptor : SingletonDescriptorBase<CommitScopeEntity, ICommitScopeEntity, CommitScopeEntityDescriptor>, ICreate<CommitScopeEntityDescriptor>
         {
             static CommitScopeEntityDescriptor ICreate<CommitScopeEntityDescriptor>.Create() => new CommitScopeEntityDescriptor();
-            CommitScopeEntityDescriptor() : base(44, 2)
+            CommitScopeEntityDescriptor() : base(45, 2)
             {
-                Add(new Property<string, string>(44, "CommitId", e => e.CommitId, (e, v) => e.CommitId = v));
+                Add(new Property<string, string>(45, "CommitId", e => e.CommitId, (e, v) => e.CommitId = v));
                 Add(new Property<string, string>(0, "RepositoryName", e => e.RepositoryName, (e, v) => e.RepositoryName = v));
             }
         }
@@ -3591,16 +3588,16 @@ namespace Codex.ObjectModel.Implementation
             {
                 Add(new Property<DefinitionSymbol, IDefinitionSymbol>(50, "Definition", e => e.Definition, (e, v) => e.Definition = v));
                 Add(new Property<Extent, Extent>(53, "FullSpan", e => e.FullSpan, (e, v) => e.FullSpan = v));
-                Add(new Property<int, int>(35, "Length", e => e.Length, (e, v) => e.Length = v));
+                Add(new Property<int, int>(36, "Length", e => e.Length, (e, v) => e.Length = v));
                 Add(new ListProperty<ParameterDefinitionSpan, IParameterDefinitionSpan>(54, "Parameters", e => e.Parameters, (e, v) => e.Parameters = v));
-                Add(new Property<int, int>(36, "Start", e => e.Start, (e, v) => e.Start = v));
+                Add(new Property<int, int>(37, "Start", e => e.Start, (e, v) => e.Start = v));
             }
         }
 
         public partial class DefinitionSymbolDescriptor : SingletonDescriptorBase<DefinitionSymbol, IDefinitionSymbol, DefinitionSymbolDescriptor>, ICreate<DefinitionSymbolDescriptor>
         {
             static DefinitionSymbolDescriptor ICreate<DefinitionSymbolDescriptor>.Create() => new DefinitionSymbolDescriptor();
-            DefinitionSymbolDescriptor() : base(67, 24)
+            DefinitionSymbolDescriptor() : base(68, 24)
             {
                 Add(new Property<string, string>(56, "AbbreviatedName", e => e.AbbreviatedName, (e, v) => e.AbbreviatedName = v));
                 Add(new ListProperty<ClassifiedExtent, ClassifiedExtent>(11, "Classifications", e => e.Classifications, (e, v) => e.Classifications = v));
@@ -3611,20 +3608,20 @@ namespace Codex.ObjectModel.Implementation
                 Add(new Property<string, string>(4, "DisplayName", e => e.DisplayName, (e, v) => e.DisplayName = v));
                 Add(new Property<bool, bool>(51, "ExcludeFromDefaultSearch", e => e.ExcludeFromDefaultSearch, (e, v) => e.ExcludeFromDefaultSearch = v));
                 Add(new Property<bool, bool>(29, "ExcludeFromSearch", e => e.ExcludeFromSearch, (e, v) => e.ExcludeFromSearch = v));
-                Add(new ListProperty<DefinitionSymbolExtendedSearchInfo, IDefinitionSymbolExtendedSearchInfo>(52, "ExtendedSearchInfo", e => e.ExtendedSearchInfo, (e, v) => e.ExtendedSearchInfo = v));
-                Add(new Property<DefinitionSymbolExtensionInfo, IDefinitionSymbolExtensionInfo>(61, "ExtensionInfo", e => e.ExtensionInfo, (e, v) => e.ExtensionInfo = v));
-                Add(new Property<Glyph, Glyph>(62, "Glyph", e => e.Glyph, (e, v) => e.Glyph = v));
+                Add(new Property<DefinitionSymbolExtensionInfo, IDefinitionSymbolExtensionInfo>(61, "ExtendedMemberInfo", e => e.ExtendedMemberInfo, (e, v) => e.ExtendedMemberInfo = v));
+                Add(new Property<DefinitionSymbolExtendedSearchInfo, IDefinitionSymbolExtendedSearchInfo>(62, "ExtraSearchInfo", e => e.ExtraSearchInfo, (e, v) => e.ExtraSearchInfo = v));
+                Add(new Property<Glyph, Glyph>(63, "Glyph", e => e.Glyph, (e, v) => e.Glyph = v));
                 Add(new Property<SymbolId, SymbolId>(33, "Id", e => e.Id, (e, v) => e.Id = v));
-                Add(new Property<Nullable<Extent<IDefinitionSymbol>>, Nullable<Extent<IDefinitionSymbol>>>(67, "JsonRange", e => e.JsonRange, (e, v) => e.JsonRange = v));
-                Add(new ListProperty<string, string>(63, "Keywords", e => e.Keywords, (e, v) => e.Keywords = v));
-                Add(new Property<StringEnum<SymbolKinds>, StringEnum<SymbolKinds>>(43, "Kind", e => e.Kind, (e, v) => e.Kind = v));
-                Add(new ListProperty<string, string>(64, "Modifiers", e => e.Modifiers, (e, v) => e.Modifiers = v));
+                Add(new Property<Nullable<Extent<IDefinitionSymbol>>, Nullable<Extent<IDefinitionSymbol>>>(68, "JsonRange", e => e.JsonRange, (e, v) => e.JsonRange = v));
+                Add(new ListProperty<string, string>(64, "Keywords", e => e.Keywords, (e, v) => e.Keywords = v));
+                Add(new Property<StringEnum<SymbolKinds>, StringEnum<SymbolKinds>>(44, "Kind", e => e.Kind, (e, v) => e.Kind = v));
+                Add(new ListProperty<string, string>(65, "Modifiers", e => e.Modifiers, (e, v) => e.Modifiers = v));
                 Add(new Property<string, string>(1, "ProjectId", e => e.ProjectId, (e, v) => e.ProjectId = v));
                 Add(new Property<int, int>(12, "ReferenceCount", e => e.ReferenceCount, (e, v) => e.ReferenceCount = v));
                 Add(new Property<ReferenceKind, ReferenceKind>(55, "ReferenceKind", e => e.ReferenceKind, (e, v) => e.ReferenceKind = v));
-                Add(new Property<string, string>(65, "ShortName", e => e.ShortName, (e, v) => e.ShortName = v));
-                Add(new Property<int, int>(40, "SymbolDepth", e => e.SymbolDepth, (e, v) => e.SymbolDepth = v));
-                Add(new Property<string, string>(66, "TypeName", e => e.TypeName, (e, v) => e.TypeName = v));
+                Add(new Property<string, string>(66, "ShortName", e => e.ShortName, (e, v) => e.ShortName = v));
+                Add(new Property<int, int>(41, "SymbolDepth", e => e.SymbolDepth, (e, v) => e.SymbolDepth = v));
+                Add(new Property<string, string>(67, "TypeName", e => e.TypeName, (e, v) => e.TypeName = v));
                 Add(new Property<string, string>(20, "Uid", e => e.Uid, (e, v) => e.Uid = v));
             }
         }
@@ -3632,9 +3629,9 @@ namespace Codex.ObjectModel.Implementation
         public partial class DefinitionSymbolExtendedSearchInfoDescriptor : SingletonDescriptorBase<DefinitionSymbolExtendedSearchInfo, IDefinitionSymbolExtendedSearchInfo, DefinitionSymbolExtendedSearchInfoDescriptor>, ICreate<DefinitionSymbolExtendedSearchInfoDescriptor>
         {
             static DefinitionSymbolExtendedSearchInfoDescriptor ICreate<DefinitionSymbolExtendedSearchInfoDescriptor>.Create() => new DefinitionSymbolExtendedSearchInfoDescriptor();
-            DefinitionSymbolExtendedSearchInfoDescriptor() : base(68, 1)
+            DefinitionSymbolExtendedSearchInfoDescriptor() : base(69, 1)
             {
-                Add(new Property<Nullable<long>, Nullable<long>>(68, "ConstantValue", e => e.ConstantValue, (e, v) => e.ConstantValue = v));
+                Add(new Property<Nullable<long>, Nullable<long>>(69, "ConstantValue", e => e.ConstantValue, (e, v) => e.ConstantValue = v));
             }
         }
 
@@ -3651,24 +3648,24 @@ namespace Codex.ObjectModel.Implementation
         public partial class DirectoryRepositoryStoreInfoDescriptor : SingletonDescriptorBase<DirectoryRepositoryStoreInfo, IDirectoryRepositoryStoreInfo, DirectoryRepositoryStoreInfoDescriptor>, ICreate<DirectoryRepositoryStoreInfoDescriptor>
         {
             static DirectoryRepositoryStoreInfoDescriptor ICreate<DirectoryRepositoryStoreInfoDescriptor>.Create() => new DirectoryRepositoryStoreInfoDescriptor();
-            DirectoryRepositoryStoreInfoDescriptor() : base(71, 4)
+            DirectoryRepositoryStoreInfoDescriptor() : base(72, 4)
             {
-                Add(new Property<Branch, IBranch>(69, "Branch", e => e.Branch, (e, v) => e.Branch = v));
+                Add(new Property<Branch, IBranch>(70, "Branch", e => e.Branch, (e, v) => e.Branch = v));
                 Add(new Property<Commit, ICommit>(14, "Commit", e => e.Commit, (e, v) => e.Commit = v));
-                Add(new Property<DirectoryStoreFormat, DirectoryStoreFormat>(71, "Format", e => e.Format, (e, v) => e.Format = v));
-                Add(new Property<Repository, IRepository>(70, "Repository", e => e.Repository, (e, v) => e.Repository = v));
+                Add(new Property<DirectoryStoreFormat, DirectoryStoreFormat>(72, "Format", e => e.Format, (e, v) => e.Format = v));
+                Add(new Property<Repository, IRepository>(71, "Repository", e => e.Repository, (e, v) => e.Repository = v));
             }
         }
 
         public partial class DisplayCodeSymbolDescriptor : SingletonDescriptorBase<DisplayCodeSymbol, IDisplayCodeSymbol, DisplayCodeSymbolDescriptor>, ICreate<DisplayCodeSymbolDescriptor>
         {
             static DisplayCodeSymbolDescriptor ICreate<DisplayCodeSymbolDescriptor>.Create() => new DisplayCodeSymbolDescriptor();
-            DisplayCodeSymbolDescriptor() : base(43, 5)
+            DisplayCodeSymbolDescriptor() : base(44, 5)
             {
                 Add(new ListProperty<ClassifiedExtent, ClassifiedExtent>(11, "Classifications", e => e.Classifications, (e, v) => e.Classifications = v));
                 Add(new Property<string, string>(4, "DisplayName", e => e.DisplayName, (e, v) => e.DisplayName = v));
                 Add(new Property<SymbolId, SymbolId>(33, "Id", e => e.Id, (e, v) => e.Id = v));
-                Add(new Property<StringEnum<SymbolKinds>, StringEnum<SymbolKinds>>(43, "Kind", e => e.Kind, (e, v) => e.Kind = v));
+                Add(new Property<StringEnum<SymbolKinds>, StringEnum<SymbolKinds>>(44, "Kind", e => e.Kind, (e, v) => e.Kind = v));
                 Add(new Property<string, string>(1, "ProjectId", e => e.ProjectId, (e, v) => e.ProjectId = v));
             }
         }
@@ -3682,7 +3679,7 @@ namespace Codex.ObjectModel.Implementation
                 Add(new Property<string, string>(4, "DisplayName", e => e.DisplayName, (e, v) => e.DisplayName = v));
                 Add(new Property<bool, bool>(29, "ExcludeFromSearch", e => e.ExcludeFromSearch, (e, v) => e.ExcludeFromSearch = v));
                 Add(new Property<SymbolId, SymbolId>(33, "Id", e => e.Id, (e, v) => e.Id = v));
-                Add(new Property<StringEnum<SymbolKinds>, StringEnum<SymbolKinds>>(43, "Kind", e => e.Kind, (e, v) => e.Kind = v));
+                Add(new Property<StringEnum<SymbolKinds>, StringEnum<SymbolKinds>>(44, "Kind", e => e.Kind, (e, v) => e.Kind = v));
                 Add(new Property<string, string>(1, "ProjectId", e => e.ProjectId, (e, v) => e.ProjectId = v));
                 Add(new Property<ReferenceKind, ReferenceKind>(55, "ReferenceKind", e => e.ReferenceKind, (e, v) => e.ReferenceKind = v));
             }
@@ -3700,19 +3697,19 @@ namespace Codex.ObjectModel.Implementation
         public partial class GlobalStoredRepositorySettingsDescriptor : SingletonDescriptorBase<GlobalStoredRepositorySettings, IGlobalStoredRepositorySettings, GlobalStoredRepositorySettingsDescriptor>, ICreate<GlobalStoredRepositorySettingsDescriptor>
         {
             static GlobalStoredRepositorySettingsDescriptor ICreate<GlobalStoredRepositorySettingsDescriptor>.Create() => new GlobalStoredRepositorySettingsDescriptor();
-            GlobalStoredRepositorySettingsDescriptor() : base(74, 2)
+            GlobalStoredRepositorySettingsDescriptor() : base(75, 2)
             {
-                Add(new Property<ImmutableDictionary<RepoName, IStoredRepositoryGroupSettings>, ImmutableDictionary<RepoName, IStoredRepositoryGroupSettings>>(73, "Groups", e => e.Groups, (e, v) => e.Groups = v));
-                Add(new Property<ImmutableDictionary<RepoName, IStoredRepositorySettings>, ImmutableDictionary<RepoName, IStoredRepositorySettings>>(74, "Repositories", e => e.Repositories, (e, v) => e.Repositories = v));
+                Add(new Property<ImmutableDictionary<RepoName, IStoredRepositoryGroupSettings>, ImmutableDictionary<RepoName, IStoredRepositoryGroupSettings>>(74, "Groups", e => e.Groups, (e, v) => e.Groups = v));
+                Add(new Property<ImmutableDictionary<RepoName, IStoredRepositorySettings>, ImmutableDictionary<RepoName, IStoredRepositorySettings>>(75, "Repositories", e => e.Repositories, (e, v) => e.Repositories = v));
             }
         }
 
         public partial class HeaderInfoDescriptor : SingletonDescriptorBase<HeaderInfo, IHeaderInfo, HeaderInfoDescriptor>, ICreate<HeaderInfoDescriptor>
         {
             static HeaderInfoDescriptor ICreate<HeaderInfoDescriptor>.Create() => new HeaderInfoDescriptor();
-            HeaderInfoDescriptor() : base(75, 1)
+            HeaderInfoDescriptor() : base(76, 1)
             {
-                Add(new Property<int, int>(75, "FormatVersion", e => e.FormatVersion, (e, v) => e.FormatVersion = v));
+                Add(new Property<int, int>(76, "FormatVersion", e => e.FormatVersion, (e, v) => e.FormatVersion = v));
             }
         }
 
@@ -3729,12 +3726,12 @@ namespace Codex.ObjectModel.Implementation
         public partial class LanguageSearchModelDescriptor : SingletonDescriptorBase<LanguageSearchModel, ILanguageSearchModel, LanguageSearchModelDescriptor>, ICreate<LanguageSearchModelDescriptor>
         {
             static LanguageSearchModelDescriptor ICreate<LanguageSearchModelDescriptor>.Create() => new LanguageSearchModelDescriptor();
-            LanguageSearchModelDescriptor() : base(76, 6)
+            LanguageSearchModelDescriptor() : base(77, 6)
             {
                 Add(new Property<MurmurHash, MurmurHash>(16, "EntityContentId", e => e.EntityContentId, (e, v) => e.EntityContentId = v));
                 Add(new Property<int, int>(17, "EntityContentSize", e => e.EntityContentSize, (e, v) => e.EntityContentSize = v));
                 Add(new Property<bool, bool>(18, "IsAdded", e => e.IsAdded, (e, v) => e.IsAdded = v));
-                Add(new Property<LanguageInfo, ILanguageInfo>(76, "Language", e => e.Language, (e, v) => e.Language = v));
+                Add(new Property<LanguageInfo, ILanguageInfo>(77, "Language", e => e.Language, (e, v) => e.Language = v));
                 Add(new Property<int, int>(19, "StableId", e => e.StableId, (e, v) => e.StableId = v));
                 Add(new Property<MurmurHash, MurmurHash>(20, "Uid", e => e.Uid, (e, v) => e.Uid = v));
             }
@@ -3743,23 +3740,23 @@ namespace Codex.ObjectModel.Implementation
         public partial class LineSpanDescriptor : SingletonDescriptorBase<LineSpan, ILineSpan, LineSpanDescriptor>, ICreate<LineSpanDescriptor>
         {
             static LineSpanDescriptor ICreate<LineSpanDescriptor>.Create() => new LineSpanDescriptor();
-            LineSpanDescriptor() : base(80, 6)
+            LineSpanDescriptor() : base(81, 6)
             {
-                Add(new Property<int, int>(35, "Length", e => e.Length, (e, v) => e.Length = v));
-                Add(new Property<int, int>(77, "LineIndex", e => e.LineIndex, (e, v) => e.LineIndex = v));
-                Add(new Property<int, int>(78, "LineNumber", e => e.LineNumber, (e, v) => e.LineNumber = v));
-                Add(new Property<int, int>(79, "LineOffset", e => e.LineOffset, (e, v) => e.LineOffset = v));
-                Add(new Property<int, int>(80, "LineSpanStart", e => e.LineSpanStart, (e, v) => e.LineSpanStart = v));
-                Add(new Property<int, int>(36, "Start", e => e.Start, (e, v) => e.Start = v));
+                Add(new Property<int, int>(36, "Length", e => e.Length, (e, v) => e.Length = v));
+                Add(new Property<int, int>(78, "LineIndex", e => e.LineIndex, (e, v) => e.LineIndex = v));
+                Add(new Property<int, int>(79, "LineNumber", e => e.LineNumber, (e, v) => e.LineNumber = v));
+                Add(new Property<int, int>(80, "LineOffset", e => e.LineOffset, (e, v) => e.LineOffset = v));
+                Add(new Property<int, int>(81, "LineSpanStart", e => e.LineSpanStart, (e, v) => e.LineSpanStart = v));
+                Add(new Property<int, int>(37, "Start", e => e.Start, (e, v) => e.Start = v));
             }
         }
 
         public partial class NewBoundSourceFileDescriptor : SingletonDescriptorBase<NewBoundSourceFile, INewBoundSourceFile, NewBoundSourceFileDescriptor>, ICreate<NewBoundSourceFileDescriptor>
         {
             static NewBoundSourceFileDescriptor ICreate<NewBoundSourceFileDescriptor>.Create() => new NewBoundSourceFileDescriptor();
-            NewBoundSourceFileDescriptor() : base(83, 2)
+            NewBoundSourceFileDescriptor() : base(85, 2)
             {
-                Add(new Property<ProjectFileScopeEntity, IProjectFileScopeEntity>(83, "FileInfo", e => e.FileInfo, (e, v) => e.FileInfo = v));
+                Add(new Property<ProjectFileScopeEntity, IProjectFileScopeEntity>(85, "FileInfo", e => e.FileInfo, (e, v) => e.FileInfo = v));
                 Add(new Property<SourceFileBase, ISourceFileBase>(15, "SourceFile", e => e.SourceFile, (e, v) => e.SourceFile = v));
             }
         }
@@ -3767,26 +3764,26 @@ namespace Codex.ObjectModel.Implementation
         public partial class OutliningRegionDescriptor : SingletonDescriptorBase<OutliningRegion, IOutliningRegion, OutliningRegionDescriptor>, ICreate<OutliningRegionDescriptor>
         {
             static OutliningRegionDescriptor ICreate<OutliningRegionDescriptor>.Create() => new OutliningRegionDescriptor();
-            OutliningRegionDescriptor() : base(84, 2)
+            OutliningRegionDescriptor() : base(86, 2)
             {
                 Add(new Property<LineSpan, ILineSpan>(23, "Content", e => e.Content, (e, v) => e.Content = v));
-                Add(new Property<LineSpan, ILineSpan>(84, "Header", e => e.Header, (e, v) => e.Header = v));
+                Add(new Property<LineSpan, ILineSpan>(86, "Header", e => e.Header, (e, v) => e.Header = v));
             }
         }
 
         public partial class ParameterDefinitionSpanDescriptor : SingletonDescriptorBase<ParameterDefinitionSpan, IParameterDefinitionSpan, ParameterDefinitionSpanDescriptor>, ICreate<ParameterDefinitionSpanDescriptor>
         {
             static ParameterDefinitionSpanDescriptor ICreate<ParameterDefinitionSpanDescriptor>.Create() => new ParameterDefinitionSpanDescriptor();
-            ParameterDefinitionSpanDescriptor() : base(85, 8)
+            ParameterDefinitionSpanDescriptor() : base(87, 8)
             {
-                Add(new Property<int, int>(35, "Length", e => e.Length, (e, v) => e.Length = v));
-                Add(new Property<int, int>(77, "LineIndex", e => e.LineIndex, (e, v) => e.LineIndex = v));
-                Add(new Property<int, int>(78, "LineNumber", e => e.LineNumber, (e, v) => e.LineNumber = v));
-                Add(new Property<int, int>(79, "LineOffset", e => e.LineOffset, (e, v) => e.LineOffset = v));
-                Add(new Property<int, int>(80, "LineSpanStart", e => e.LineSpanStart, (e, v) => e.LineSpanStart = v));
+                Add(new Property<int, int>(36, "Length", e => e.Length, (e, v) => e.Length = v));
+                Add(new Property<int, int>(78, "LineIndex", e => e.LineIndex, (e, v) => e.LineIndex = v));
+                Add(new Property<int, int>(79, "LineNumber", e => e.LineNumber, (e, v) => e.LineNumber = v));
+                Add(new Property<int, int>(80, "LineOffset", e => e.LineOffset, (e, v) => e.LineOffset = v));
+                Add(new Property<int, int>(81, "LineSpanStart", e => e.LineSpanStart, (e, v) => e.LineSpanStart = v));
                 Add(new Property<string, string>(28, "Name", e => e.Name, (e, v) => e.Name = v));
-                Add(new Property<int, int>(85, "ParameterIndex", e => e.ParameterIndex, (e, v) => e.ParameterIndex = v));
-                Add(new Property<int, int>(36, "Start", e => e.Start, (e, v) => e.Start = v));
+                Add(new Property<int, int>(87, "ParameterIndex", e => e.ParameterIndex, (e, v) => e.ParameterIndex = v));
+                Add(new Property<int, int>(37, "Start", e => e.Start, (e, v) => e.Start = v));
             }
         }
 
@@ -3803,28 +3800,28 @@ namespace Codex.ObjectModel.Implementation
         public partial class ParameterReferenceSpanDescriptor : SingletonDescriptorBase<ParameterReferenceSpan, IParameterReferenceSpan, ParameterReferenceSpanDescriptor>, ICreate<ParameterReferenceSpanDescriptor>
         {
             static ParameterReferenceSpanDescriptor ICreate<ParameterReferenceSpanDescriptor>.Create() => new ParameterReferenceSpanDescriptor();
-            ParameterReferenceSpanDescriptor() : base(86, 8)
+            ParameterReferenceSpanDescriptor() : base(88, 8)
             {
-                Add(new Property<int, int>(35, "Length", e => e.Length, (e, v) => e.Length = v));
-                Add(new Property<int, int>(77, "LineIndex", e => e.LineIndex, (e, v) => e.LineIndex = v));
-                Add(new Property<int, int>(78, "LineNumber", e => e.LineNumber, (e, v) => e.LineNumber = v));
-                Add(new Property<int, int>(79, "LineOffset", e => e.LineOffset, (e, v) => e.LineOffset = v));
-                Add(new Property<int, int>(80, "LineSpanStart", e => e.LineSpanStart, (e, v) => e.LineSpanStart = v));
-                Add(new Property<CharString, CharString>(86, "LineSpanText", e => e.LineSpanText, (e, v) => e.LineSpanText = v));
-                Add(new Property<int, int>(85, "ParameterIndex", e => e.ParameterIndex, (e, v) => e.ParameterIndex = v));
-                Add(new Property<int, int>(36, "Start", e => e.Start, (e, v) => e.Start = v));
+                Add(new Property<int, int>(36, "Length", e => e.Length, (e, v) => e.Length = v));
+                Add(new Property<int, int>(78, "LineIndex", e => e.LineIndex, (e, v) => e.LineIndex = v));
+                Add(new Property<int, int>(79, "LineNumber", e => e.LineNumber, (e, v) => e.LineNumber = v));
+                Add(new Property<int, int>(80, "LineOffset", e => e.LineOffset, (e, v) => e.LineOffset = v));
+                Add(new Property<int, int>(81, "LineSpanStart", e => e.LineSpanStart, (e, v) => e.LineSpanStart = v));
+                Add(new Property<CharString, CharString>(88, "LineSpanText", e => e.LineSpanText, (e, v) => e.LineSpanText = v));
+                Add(new Property<int, int>(87, "ParameterIndex", e => e.ParameterIndex, (e, v) => e.ParameterIndex = v));
+                Add(new Property<int, int>(37, "Start", e => e.Start, (e, v) => e.Start = v));
             }
         }
 
         public partial class ProjectFileLinkDescriptor : SingletonDescriptorBase<ProjectFileLink, IProjectFileLink, ProjectFileLinkDescriptor>, ICreate<ProjectFileLinkDescriptor>
         {
             static ProjectFileLinkDescriptor ICreate<ProjectFileLinkDescriptor>.Create() => new ProjectFileLinkDescriptor();
-            ProjectFileLinkDescriptor() : base(89, 5)
+            ProjectFileLinkDescriptor() : base(91, 5)
             {
-                Add(new Property<string, string>(89, "FileId", e => e.FileId, (e, v) => e.FileId = v));
+                Add(new Property<string, string>(91, "FileId", e => e.FileId, (e, v) => e.FileId = v));
                 Add(new Property<string, string>(1, "ProjectId", e => e.ProjectId, (e, v) => e.ProjectId = v));
-                Add(new Property<string, string>(88, "ProjectRelativePath", e => e.ProjectRelativePath, (e, v) => e.ProjectRelativePath = v));
-                Add(new Property<string, string>(87, "RepoRelativePath", e => e.RepoRelativePath, (e, v) => e.RepoRelativePath = v));
+                Add(new Property<NormalizedPath, NormalizedPath>(90, "ProjectRelativePath", e => e.ProjectRelativePath, (e, v) => e.ProjectRelativePath = v));
+                Add(new Property<string, string>(89, "RepoRelativePath", e => e.RepoRelativePath, (e, v) => e.RepoRelativePath = v));
                 Add(new Property<string, string>(0, "RepositoryName", e => e.RepositoryName, (e, v) => e.RepositoryName = v));
             }
         }
@@ -3832,11 +3829,11 @@ namespace Codex.ObjectModel.Implementation
         public partial class ProjectFileScopeEntityDescriptor : SingletonDescriptorBase<ProjectFileScopeEntity, IProjectFileScopeEntity, ProjectFileScopeEntityDescriptor>, ICreate<ProjectFileScopeEntityDescriptor>
         {
             static ProjectFileScopeEntityDescriptor ICreate<ProjectFileScopeEntityDescriptor>.Create() => new ProjectFileScopeEntityDescriptor();
-            ProjectFileScopeEntityDescriptor() : base(88, 4)
+            ProjectFileScopeEntityDescriptor() : base(90, 4)
             {
                 Add(new Property<string, string>(1, "ProjectId", e => e.ProjectId, (e, v) => e.ProjectId = v));
-                Add(new Property<string, string>(88, "ProjectRelativePath", e => e.ProjectRelativePath, (e, v) => e.ProjectRelativePath = v));
-                Add(new Property<string, string>(87, "RepoRelativePath", e => e.RepoRelativePath, (e, v) => e.RepoRelativePath = v));
+                Add(new Property<NormalizedPath, NormalizedPath>(90, "ProjectRelativePath", e => e.ProjectRelativePath, (e, v) => e.ProjectRelativePath = v));
+                Add(new Property<string, string>(89, "RepoRelativePath", e => e.RepoRelativePath, (e, v) => e.RepoRelativePath = v));
                 Add(new Property<string, string>(0, "RepositoryName", e => e.RepositoryName, (e, v) => e.RepositoryName = v));
             }
         }
@@ -3844,13 +3841,13 @@ namespace Codex.ObjectModel.Implementation
         public partial class ProjectReferenceSearchModelDescriptor : SingletonDescriptorBase<ProjectReferenceSearchModel, IProjectReferenceSearchModel, ProjectReferenceSearchModelDescriptor>, ICreate<ProjectReferenceSearchModelDescriptor>
         {
             static ProjectReferenceSearchModelDescriptor ICreate<ProjectReferenceSearchModelDescriptor>.Create() => new ProjectReferenceSearchModelDescriptor();
-            ProjectReferenceSearchModelDescriptor() : base(90, 8)
+            ProjectReferenceSearchModelDescriptor() : base(92, 8)
             {
                 Add(new Property<MurmurHash, MurmurHash>(16, "EntityContentId", e => e.EntityContentId, (e, v) => e.EntityContentId = v));
                 Add(new Property<int, int>(17, "EntityContentSize", e => e.EntityContentSize, (e, v) => e.EntityContentSize = v));
                 Add(new Property<bool, bool>(18, "IsAdded", e => e.IsAdded, (e, v) => e.IsAdded = v));
                 Add(new Property<string, string>(1, "ProjectId", e => e.ProjectId, (e, v) => e.ProjectId = v));
-                Add(new Property<IReferencedProject, IReferencedProject>(90, "ProjectReference", e => e.ProjectReference, (e, v) => e.ProjectReference = v));
+                Add(new Property<IReferencedProject, IReferencedProject>(92, "ProjectReference", e => e.ProjectReference, (e, v) => e.ProjectReference = v));
                 Add(new Property<string, string>(0, "RepositoryName", e => e.RepositoryName, (e, v) => e.RepositoryName = v));
                 Add(new Property<int, int>(19, "StableId", e => e.StableId, (e, v) => e.StableId = v));
                 Add(new Property<MurmurHash, MurmurHash>(20, "Uid", e => e.Uid, (e, v) => e.Uid = v));
@@ -3870,12 +3867,12 @@ namespace Codex.ObjectModel.Implementation
         public partial class ProjectSearchModelDescriptor : SingletonDescriptorBase<ProjectSearchModel, IProjectSearchModel, ProjectSearchModelDescriptor>, ICreate<ProjectSearchModelDescriptor>
         {
             static ProjectSearchModelDescriptor ICreate<ProjectSearchModelDescriptor>.Create() => new ProjectSearchModelDescriptor();
-            ProjectSearchModelDescriptor() : base(91, 6)
+            ProjectSearchModelDescriptor() : base(93, 6)
             {
                 Add(new Property<MurmurHash, MurmurHash>(16, "EntityContentId", e => e.EntityContentId, (e, v) => e.EntityContentId = v));
                 Add(new Property<int, int>(17, "EntityContentSize", e => e.EntityContentSize, (e, v) => e.EntityContentSize = v));
                 Add(new Property<bool, bool>(18, "IsAdded", e => e.IsAdded, (e, v) => e.IsAdded = v));
-                Add(new Property<IAnalyzedProjectInfo, IAnalyzedProjectInfo>(91, "Project", e => e.Project, (e, v) => e.Project = v));
+                Add(new Property<IAnalyzedProjectInfo, IAnalyzedProjectInfo>(93, "Project", e => e.Project, (e, v) => e.Project = v));
                 Add(new Property<int, int>(19, "StableId", e => e.StableId, (e, v) => e.StableId = v));
                 Add(new Property<MurmurHash, MurmurHash>(20, "Uid", e => e.Uid, (e, v) => e.Uid = v));
             }
@@ -3884,16 +3881,16 @@ namespace Codex.ObjectModel.Implementation
         public partial class PropertySearchModelDescriptor : SingletonDescriptorBase<PropertySearchModel, IPropertySearchModel, PropertySearchModelDescriptor>, ICreate<PropertySearchModelDescriptor>
         {
             static PropertySearchModelDescriptor ICreate<PropertySearchModelDescriptor>.Create() => new PropertySearchModelDescriptor();
-            PropertySearchModelDescriptor() : base(93, 8)
+            PropertySearchModelDescriptor() : base(95, 8)
             {
                 Add(new Property<MurmurHash, MurmurHash>(16, "EntityContentId", e => e.EntityContentId, (e, v) => e.EntityContentId = v));
                 Add(new Property<int, int>(17, "EntityContentSize", e => e.EntityContentSize, (e, v) => e.EntityContentSize = v));
                 Add(new Property<bool, bool>(18, "IsAdded", e => e.IsAdded, (e, v) => e.IsAdded = v));
-                Add(new Property<StringEnum<PropertyKey>, StringEnum<PropertyKey>>(92, "Key", e => e.Key, (e, v) => e.Key = v));
-                Add(new Property<int, int>(93, "OwnerId", e => e.OwnerId, (e, v) => e.OwnerId = v));
+                Add(new Property<StringEnum<PropertyKey>, StringEnum<PropertyKey>>(94, "Key", e => e.Key, (e, v) => e.Key = v));
+                Add(new Property<int, int>(95, "OwnerId", e => e.OwnerId, (e, v) => e.OwnerId = v));
                 Add(new Property<int, int>(19, "StableId", e => e.StableId, (e, v) => e.StableId = v));
                 Add(new Property<MurmurHash, MurmurHash>(20, "Uid", e => e.Uid, (e, v) => e.Uid = v));
-                Add(new Property<string, string>(72, "Value", e => e.Value, (e, v) => e.Value = v));
+                Add(new Property<string, string>(73, "Value", e => e.Value, (e, v) => e.Value = v));
             }
         }
 
@@ -3923,18 +3920,18 @@ namespace Codex.ObjectModel.Implementation
         public partial class ReferenceSearchModelDescriptor : SingletonDescriptorBase<ReferenceSearchModel, IReferenceSearchModel, ReferenceSearchModelDescriptor>, ICreate<ReferenceSearchModelDescriptor>
         {
             static ReferenceSearchModelDescriptor ICreate<ReferenceSearchModelDescriptor>.Create() => new ReferenceSearchModelDescriptor();
-            ReferenceSearchModelDescriptor() : base(97, 11)
+            ReferenceSearchModelDescriptor() : base(99, 11)
             {
                 Add(new Property<MurmurHash, MurmurHash>(16, "EntityContentId", e => e.EntityContentId, (e, v) => e.EntityContentId = v));
                 Add(new Property<int, int>(17, "EntityContentSize", e => e.EntityContentSize, (e, v) => e.EntityContentSize = v));
-                Add(new Property<IProjectFileScopeEntity, IProjectFileScopeEntity>(83, "FileInfo", e => e.FileInfo, (e, v) => e.FileInfo = v));
+                Add(new Property<IProjectFileScopeEntity, IProjectFileScopeEntity>(85, "FileInfo", e => e.FileInfo, (e, v) => e.FileInfo = v));
                 Add(new Property<bool, bool>(18, "IsAdded", e => e.IsAdded, (e, v) => e.IsAdded = v));
                 Add(new Property<ReferenceKindSet, ReferenceKindSet>(55, "ReferenceKind", e => e.ReferenceKind, (e, v) => e.ReferenceKind = v));
                 Add(new Property<SymbolReferenceList, ISymbolReferenceList>(13, "References", e => e.References, (e, v) => e.References = v));
-                Add(new Property<IEnumerable<SymbolId>, IEnumerable<SymbolId>>(95, "RelatedDefinition", e => e.RelatedDefinition, (e, v) => e.RelatedDefinition = v));
-                Add(new ListProperty<IReferenceSpan, IReferenceSpan>(96, "Spans", e => e.Spans, (e, v) => e.Spans = v));
+                Add(new Property<IEnumerable<SymbolId>, IEnumerable<SymbolId>>(97, "RelatedDefinition", e => e.RelatedDefinition, (e, v) => e.RelatedDefinition = v));
+                Add(new ListProperty<IReferenceSpan, IReferenceSpan>(98, "Spans", e => e.Spans, (e, v) => e.Spans = v));
                 Add(new Property<int, int>(19, "StableId", e => e.StableId, (e, v) => e.StableId = v));
-                Add(new Property<ICodeSymbol, ICodeSymbol>(97, "Symbol", e => e.Symbol, (e, v) => e.Symbol = v));
+                Add(new Property<ICodeSymbol, ICodeSymbol>(99, "Symbol", e => e.Symbol, (e, v) => e.Symbol = v));
                 Add(new Property<MurmurHash, MurmurHash>(20, "Uid", e => e.Uid, (e, v) => e.Uid = v));
             }
         }
@@ -3942,30 +3939,30 @@ namespace Codex.ObjectModel.Implementation
         public partial class ReferenceSearchResultDescriptor : SingletonDescriptorBase<ReferenceSearchResult, IReferenceSearchResult, ReferenceSearchResultDescriptor>, ICreate<ReferenceSearchResultDescriptor>
         {
             static ReferenceSearchResultDescriptor ICreate<ReferenceSearchResultDescriptor>.Create() => new ReferenceSearchResultDescriptor();
-            ReferenceSearchResultDescriptor() : base(98, 2)
+            ReferenceSearchResultDescriptor() : base(100, 2)
             {
                 Add(new Property<IProjectFileScopeEntity, IProjectFileScopeEntity>(24, "File", e => e.File, (e, v) => e.File = v));
-                Add(new Property<IReferenceSpan, IReferenceSpan>(98, "ReferenceSpan", e => e.ReferenceSpan, (e, v) => e.ReferenceSpan = v));
+                Add(new Property<IReferenceSpan, IReferenceSpan>(100, "ReferenceSpan", e => e.ReferenceSpan, (e, v) => e.ReferenceSpan = v));
             }
         }
 
         public partial class ReferenceSpanDescriptor : SingletonDescriptorBase<ReferenceSpan, IReferenceSpan, ReferenceSpanDescriptor>, ICreate<ReferenceSpanDescriptor>
         {
             static ReferenceSpanDescriptor ICreate<ReferenceSpanDescriptor>.Create() => new ReferenceSpanDescriptor();
-            ReferenceSpanDescriptor() : base(101, 12)
+            ReferenceSpanDescriptor() : base(103, 12)
             {
-                Add(new Property<IDisplayCodeSymbol, IDisplayCodeSymbol>(99, "ContainerSymbol", e => e.ContainerSymbol, (e, v) => e.ContainerSymbol = v));
-                Add(new Property<bool, bool>(100, "IsImplicitlyDeclared", e => e.IsImplicitlyDeclared, (e, v) => e.IsImplicitlyDeclared = v));
-                Add(new Property<int, int>(35, "Length", e => e.Length, (e, v) => e.Length = v));
-                Add(new Property<int, int>(77, "LineIndex", e => e.LineIndex, (e, v) => e.LineIndex = v));
-                Add(new Property<int, int>(78, "LineNumber", e => e.LineNumber, (e, v) => e.LineNumber = v));
-                Add(new Property<int, int>(79, "LineOffset", e => e.LineOffset, (e, v) => e.LineOffset = v));
-                Add(new Property<int, int>(80, "LineSpanStart", e => e.LineSpanStart, (e, v) => e.LineSpanStart = v));
-                Add(new Property<CharString, CharString>(86, "LineSpanText", e => e.LineSpanText, (e, v) => e.LineSpanText = v));
+                Add(new Property<IDisplayCodeSymbol, IDisplayCodeSymbol>(101, "ContainerSymbol", e => e.ContainerSymbol, (e, v) => e.ContainerSymbol = v));
+                Add(new Property<bool, bool>(102, "IsImplicitlyDeclared", e => e.IsImplicitlyDeclared, (e, v) => e.IsImplicitlyDeclared = v));
+                Add(new Property<int, int>(36, "Length", e => e.Length, (e, v) => e.Length = v));
+                Add(new Property<int, int>(78, "LineIndex", e => e.LineIndex, (e, v) => e.LineIndex = v));
+                Add(new Property<int, int>(79, "LineNumber", e => e.LineNumber, (e, v) => e.LineNumber = v));
+                Add(new Property<int, int>(80, "LineOffset", e => e.LineOffset, (e, v) => e.LineOffset = v));
+                Add(new Property<int, int>(81, "LineSpanStart", e => e.LineSpanStart, (e, v) => e.LineSpanStart = v));
+                Add(new Property<CharString, CharString>(88, "LineSpanText", e => e.LineSpanText, (e, v) => e.LineSpanText = v));
                 Add(new ListProperty<ParameterReferenceSpan, IParameterReferenceSpan>(54, "Parameters", e => e.Parameters, (e, v) => e.Parameters = v));
-                Add(new Property<ReferenceSymbol, IReferenceSymbol>(101, "Reference", e => e.Reference, (e, v) => e.Reference = v));
-                Add(new Property<SymbolId, SymbolId>(95, "RelatedDefinition", e => e.RelatedDefinition, (e, v) => e.RelatedDefinition = v));
-                Add(new Property<int, int>(36, "Start", e => e.Start, (e, v) => e.Start = v));
+                Add(new Property<ReferenceSymbol, IReferenceSymbol>(103, "Reference", e => e.Reference, (e, v) => e.Reference = v));
+                Add(new Property<SymbolId, SymbolId>(97, "RelatedDefinition", e => e.RelatedDefinition, (e, v) => e.RelatedDefinition = v));
+                Add(new Property<int, int>(37, "Start", e => e.Start, (e, v) => e.Start = v));
             }
         }
 
@@ -3976,7 +3973,7 @@ namespace Codex.ObjectModel.Implementation
             {
                 Add(new Property<bool, bool>(29, "ExcludeFromSearch", e => e.ExcludeFromSearch, (e, v) => e.ExcludeFromSearch = v));
                 Add(new Property<SymbolId, SymbolId>(33, "Id", e => e.Id, (e, v) => e.Id = v));
-                Add(new Property<StringEnum<SymbolKinds>, StringEnum<SymbolKinds>>(43, "Kind", e => e.Kind, (e, v) => e.Kind = v));
+                Add(new Property<StringEnum<SymbolKinds>, StringEnum<SymbolKinds>>(44, "Kind", e => e.Kind, (e, v) => e.Kind = v));
                 Add(new Property<string, string>(1, "ProjectId", e => e.ProjectId, (e, v) => e.ProjectId = v));
                 Add(new Property<ReferenceKind, ReferenceKind>(55, "ReferenceKind", e => e.ReferenceKind, (e, v) => e.ReferenceKind = v));
             }
@@ -3985,9 +3982,9 @@ namespace Codex.ObjectModel.Implementation
         public partial class RepoFileScopeEntityDescriptor : SingletonDescriptorBase<RepoFileScopeEntity, IRepoFileScopeEntity, RepoFileScopeEntityDescriptor>, ICreate<RepoFileScopeEntityDescriptor>
         {
             static RepoFileScopeEntityDescriptor ICreate<RepoFileScopeEntityDescriptor>.Create() => new RepoFileScopeEntityDescriptor();
-            RepoFileScopeEntityDescriptor() : base(87, 2)
+            RepoFileScopeEntityDescriptor() : base(89, 2)
             {
-                Add(new Property<string, string>(87, "RepoRelativePath", e => e.RepoRelativePath, (e, v) => e.RepoRelativePath = v));
+                Add(new Property<string, string>(89, "RepoRelativePath", e => e.RepoRelativePath, (e, v) => e.RepoRelativePath = v));
                 Add(new Property<string, string>(0, "RepositoryName", e => e.RepositoryName, (e, v) => e.RepositoryName = v));
             }
         }
@@ -4004,13 +4001,13 @@ namespace Codex.ObjectModel.Implementation
         public partial class RepositoryDescriptor : SingletonDescriptorBase<Repository, IRepository, RepositoryDescriptor>, ICreate<RepositoryDescriptor>
         {
             static RepositoryDescriptor ICreate<RepositoryDescriptor>.Create() => new RepositoryDescriptor();
-            RepositoryDescriptor() : base(104, 5)
+            RepositoryDescriptor() : base(106, 5)
             {
                 Add(new Property<string, string>(26, "Description", e => e.Description, (e, v) => e.Description = v));
                 Add(new Property<string, string>(28, "Name", e => e.Name, (e, v) => e.Name = v));
-                Add(new Property<string, string>(102, "PrimaryBranch", e => e.PrimaryBranch, (e, v) => e.PrimaryBranch = v));
-                Add(new ListProperty<RepositoryReference, IRepositoryReference>(103, "RepositoryReferences", e => e.RepositoryReferences, (e, v) => e.RepositoryReferences = v));
-                Add(new Property<string, string>(104, "SourceControlWebAddress", e => e.SourceControlWebAddress, (e, v) => e.SourceControlWebAddress = v));
+                Add(new Property<string, string>(104, "PrimaryBranch", e => e.PrimaryBranch, (e, v) => e.PrimaryBranch = v));
+                Add(new ListProperty<RepositoryReference, IRepositoryReference>(105, "RepositoryReferences", e => e.RepositoryReferences, (e, v) => e.RepositoryReferences = v));
+                Add(new Property<string, string>(106, "SourceControlWebAddress", e => e.SourceControlWebAddress, (e, v) => e.SourceControlWebAddress = v));
             }
         }
 
@@ -4027,12 +4024,12 @@ namespace Codex.ObjectModel.Implementation
         public partial class RepositorySearchModelDescriptor : SingletonDescriptorBase<RepositorySearchModel, IRepositorySearchModel, RepositorySearchModelDescriptor>, ICreate<RepositorySearchModelDescriptor>
         {
             static RepositorySearchModelDescriptor ICreate<RepositorySearchModelDescriptor>.Create() => new RepositorySearchModelDescriptor();
-            RepositorySearchModelDescriptor() : base(70, 6)
+            RepositorySearchModelDescriptor() : base(71, 6)
             {
                 Add(new Property<MurmurHash, MurmurHash>(16, "EntityContentId", e => e.EntityContentId, (e, v) => e.EntityContentId = v));
                 Add(new Property<int, int>(17, "EntityContentSize", e => e.EntityContentSize, (e, v) => e.EntityContentSize = v));
                 Add(new Property<bool, bool>(18, "IsAdded", e => e.IsAdded, (e, v) => e.IsAdded = v));
-                Add(new Property<Repository, IRepository>(70, "Repository", e => e.Repository, (e, v) => e.Repository = v));
+                Add(new Property<Repository, IRepository>(71, "Repository", e => e.Repository, (e, v) => e.Repository = v));
                 Add(new Property<int, int>(19, "StableId", e => e.StableId, (e, v) => e.StableId = v));
                 Add(new Property<MurmurHash, MurmurHash>(20, "Uid", e => e.Uid, (e, v) => e.Uid = v));
             }
@@ -4041,11 +4038,11 @@ namespace Codex.ObjectModel.Implementation
         public partial class RepositoryStoreInfoDescriptor : SingletonDescriptorBase<RepositoryStoreInfo, IRepositoryStoreInfo, RepositoryStoreInfoDescriptor>, ICreate<RepositoryStoreInfoDescriptor>
         {
             static RepositoryStoreInfoDescriptor ICreate<RepositoryStoreInfoDescriptor>.Create() => new RepositoryStoreInfoDescriptor();
-            RepositoryStoreInfoDescriptor() : base(70, 3)
+            RepositoryStoreInfoDescriptor() : base(71, 3)
             {
-                Add(new Property<Branch, IBranch>(69, "Branch", e => e.Branch, (e, v) => e.Branch = v));
+                Add(new Property<Branch, IBranch>(70, "Branch", e => e.Branch, (e, v) => e.Branch = v));
                 Add(new Property<Commit, ICommit>(14, "Commit", e => e.Commit, (e, v) => e.Commit = v));
-                Add(new Property<Repository, IRepository>(70, "Repository", e => e.Repository, (e, v) => e.Repository = v));
+                Add(new Property<Repository, IRepository>(71, "Repository", e => e.Repository, (e, v) => e.Repository = v));
             }
         }
 
@@ -4065,59 +4062,59 @@ namespace Codex.ObjectModel.Implementation
         public partial class SearchResultDescriptor : SingletonDescriptorBase<SearchResult, ISearchResult, SearchResultDescriptor>, ICreate<SearchResultDescriptor>
         {
             static SearchResultDescriptor ICreate<SearchResultDescriptor>.Create() => new SearchResultDescriptor();
-            SearchResultDescriptor() : base(105, 2)
+            SearchResultDescriptor() : base(107, 2)
             {
                 Add(new Property<DefinitionSymbol, IDefinitionSymbol>(50, "Definition", e => e.Definition, (e, v) => e.Definition = v));
-                Add(new Property<TextLineSpanResult, ITextLineSpanResult>(105, "TextLine", e => e.TextLine, (e, v) => e.TextLine = v));
+                Add(new Property<TextLineSpanResult, ITextLineSpanResult>(107, "TextLine", e => e.TextLine, (e, v) => e.TextLine = v));
             }
         }
 
         public partial class SharedReferenceInfoDescriptor : SingletonDescriptorBase<SharedReferenceInfo, ISharedReferenceInfo, SharedReferenceInfoDescriptor>, ICreate<SharedReferenceInfoDescriptor>
         {
             static SharedReferenceInfoDescriptor ICreate<SharedReferenceInfoDescriptor>.Create() => new SharedReferenceInfoDescriptor();
-            SharedReferenceInfoDescriptor() : base(95, 3)
+            SharedReferenceInfoDescriptor() : base(97, 3)
             {
                 Add(new Property<bool, bool>(29, "ExcludeFromSearch", e => e.ExcludeFromSearch, (e, v) => e.ExcludeFromSearch = v));
                 Add(new Property<ReferenceKind, ReferenceKind>(55, "ReferenceKind", e => e.ReferenceKind, (e, v) => e.ReferenceKind = v));
-                Add(new Property<SymbolId, SymbolId>(95, "RelatedDefinition", e => e.RelatedDefinition, (e, v) => e.RelatedDefinition = v));
+                Add(new Property<SymbolId, SymbolId>(97, "RelatedDefinition", e => e.RelatedDefinition, (e, v) => e.RelatedDefinition = v));
             }
         }
 
         public partial class SharedReferenceInfoSpanDescriptor : SingletonDescriptorBase<SharedReferenceInfoSpan, ISharedReferenceInfoSpan, SharedReferenceInfoSpanDescriptor>, ICreate<SharedReferenceInfoSpanDescriptor>
         {
             static SharedReferenceInfoSpanDescriptor ICreate<SharedReferenceInfoSpanDescriptor>.Create() => new SharedReferenceInfoSpanDescriptor();
-            SharedReferenceInfoSpanDescriptor() : base(86, 8)
+            SharedReferenceInfoSpanDescriptor() : base(88, 8)
             {
                 Add(new Property<SharedReferenceInfo, ISharedReferenceInfo>(31, "Info", e => e.Info, (e, v) => e.Info = v));
-                Add(new Property<int, int>(35, "Length", e => e.Length, (e, v) => e.Length = v));
-                Add(new Property<int, int>(77, "LineIndex", e => e.LineIndex, (e, v) => e.LineIndex = v));
-                Add(new Property<int, int>(78, "LineNumber", e => e.LineNumber, (e, v) => e.LineNumber = v));
-                Add(new Property<int, int>(79, "LineOffset", e => e.LineOffset, (e, v) => e.LineOffset = v));
-                Add(new Property<int, int>(80, "LineSpanStart", e => e.LineSpanStart, (e, v) => e.LineSpanStart = v));
-                Add(new Property<CharString, CharString>(86, "LineSpanText", e => e.LineSpanText, (e, v) => e.LineSpanText = v));
-                Add(new Property<int, int>(36, "Start", e => e.Start, (e, v) => e.Start = v));
+                Add(new Property<int, int>(36, "Length", e => e.Length, (e, v) => e.Length = v));
+                Add(new Property<int, int>(78, "LineIndex", e => e.LineIndex, (e, v) => e.LineIndex = v));
+                Add(new Property<int, int>(79, "LineNumber", e => e.LineNumber, (e, v) => e.LineNumber = v));
+                Add(new Property<int, int>(80, "LineOffset", e => e.LineOffset, (e, v) => e.LineOffset = v));
+                Add(new Property<int, int>(81, "LineSpanStart", e => e.LineSpanStart, (e, v) => e.LineSpanStart = v));
+                Add(new Property<CharString, CharString>(88, "LineSpanText", e => e.LineSpanText, (e, v) => e.LineSpanText = v));
+                Add(new Property<int, int>(37, "Start", e => e.Start, (e, v) => e.Start = v));
             }
         }
 
         public partial class SourceControlFileInfoDescriptor : SingletonDescriptorBase<SourceControlFileInfo, ISourceControlFileInfo, SourceControlFileInfoDescriptor>, ICreate<SourceControlFileInfoDescriptor>
         {
             static SourceControlFileInfoDescriptor ICreate<SourceControlFileInfoDescriptor>.Create() => new SourceControlFileInfoDescriptor();
-            SourceControlFileInfoDescriptor() : base(109, 4)
+            SourceControlFileInfoDescriptor() : base(111, 4)
             {
-                Add(new Property<SourceEncodingInfo, SourceEncodingInfo>(106, "EncodingInfo", e => e.EncodingInfo, (e, v) => e.EncodingInfo = v));
-                Add(new Property<int, int>(107, "Lines", e => e.Lines, (e, v) => e.Lines = v));
-                Add(new Property<int, int>(108, "Size", e => e.Size, (e, v) => e.Size = v));
-                Add(new Property<string, string>(109, "SourceControlContentId", e => e.SourceControlContentId, (e, v) => e.SourceControlContentId = v));
+                Add(new Property<string, string>(108, "ContentId", e => e.ContentId, (e, v) => e.ContentId = v));
+                Add(new Property<SourceEncodingInfo, SourceEncodingInfo>(109, "EncodingInfo", e => e.EncodingInfo, (e, v) => e.EncodingInfo = v));
+                Add(new Property<int, int>(110, "Lines", e => e.Lines, (e, v) => e.Lines = v));
+                Add(new Property<int, int>(111, "Size", e => e.Size, (e, v) => e.Size = v));
             }
         }
 
         public partial class SourceFileDescriptor : SingletonDescriptorBase<SourceFile, ISourceFile, SourceFileDescriptor>, ICreate<SourceFileDescriptor>
         {
             static SourceFileDescriptor ICreate<SourceFileDescriptor>.Create() => new SourceFileDescriptor();
-            SourceFileDescriptor() : base(110, 5)
+            SourceFileDescriptor() : base(112, 5)
             {
                 Add(new Property<string, string>(23, "Content", e => e.Content, (e, v) => e.Content = v));
-                Add(new Property<TextSourceBase, TextSourceBase>(110, "ContentSource", e => e.ContentSource, (e, v) => e.ContentSource = v));
+                Add(new Property<TextSourceBase, TextSourceBase>(112, "ContentSource", e => e.ContentSource, (e, v) => e.ContentSource = v));
                 Add(new Property<bool, bool>(29, "ExcludeFromSearch", e => e.ExcludeFromSearch, (e, v) => e.ExcludeFromSearch = v));
                 Add(new Property<BoundSourceFlags, BoundSourceFlags>(30, "Flags", e => e.Flags, (e, v) => e.Flags = v));
                 Add(new Property<SourceFileInfo, ISourceFileInfo>(31, "Info", e => e.Info, (e, v) => e.Info = v));
@@ -4138,22 +4135,22 @@ namespace Codex.ObjectModel.Implementation
         public partial class SourceFileInfoDescriptor : SingletonDescriptorBase<SourceFileInfo, ISourceFileInfo, SourceFileInfoDescriptor>, ICreate<SourceFileInfoDescriptor>
         {
             static SourceFileInfoDescriptor ICreate<SourceFileInfoDescriptor>.Create() => new SourceFileInfoDescriptor();
-            SourceFileInfoDescriptor() : base(112, 14)
+            SourceFileInfoDescriptor() : base(114, 14)
             {
-                Add(new Property<string, string>(44, "CommitId", e => e.CommitId, (e, v) => e.CommitId = v));
-                Add(new Property<string, string>(111, "DownloadAddress", e => e.DownloadAddress, (e, v) => e.DownloadAddress = v));
-                Add(new Property<SourceEncodingInfo, SourceEncodingInfo>(106, "EncodingInfo", e => e.EncodingInfo, (e, v) => e.EncodingInfo = v));
-                Add(new Property<string, string>(76, "Language", e => e.Language, (e, v) => e.Language = v));
-                Add(new Property<int, int>(107, "Lines", e => e.Lines, (e, v) => e.Lines = v));
+                Add(new Property<string, string>(45, "CommitId", e => e.CommitId, (e, v) => e.CommitId = v));
+                Add(new Property<string, string>(108, "ContentId", e => e.ContentId, (e, v) => e.ContentId = v));
+                Add(new Property<string, string>(113, "DownloadAddress", e => e.DownloadAddress, (e, v) => e.DownloadAddress = v));
+                Add(new Property<SourceEncodingInfo, SourceEncodingInfo>(109, "EncodingInfo", e => e.EncodingInfo, (e, v) => e.EncodingInfo = v));
+                Add(new Property<string, string>(77, "Language", e => e.Language, (e, v) => e.Language = v));
+                Add(new Property<int, int>(110, "Lines", e => e.Lines, (e, v) => e.Lines = v));
                 Add(new Property<string, string>(1, "ProjectId", e => e.ProjectId, (e, v) => e.ProjectId = v));
-                Add(new Property<string, string>(88, "ProjectRelativePath", e => e.ProjectRelativePath, (e, v) => e.ProjectRelativePath = v));
+                Add(new Property<NormalizedPath, NormalizedPath>(90, "ProjectRelativePath", e => e.ProjectRelativePath, (e, v) => e.ProjectRelativePath = v));
                 Add(new Property<PropertyMap, IPropertyMap>(5, "Properties", e => e.Properties, (e, v) => e.Properties = v));
                 Add(new Property<string, string>(10, "Qualifier", e => e.Qualifier, (e, v) => e.Qualifier = v));
-                Add(new Property<string, string>(87, "RepoRelativePath", e => e.RepoRelativePath, (e, v) => e.RepoRelativePath = v));
+                Add(new Property<string, string>(89, "RepoRelativePath", e => e.RepoRelativePath, (e, v) => e.RepoRelativePath = v));
                 Add(new Property<string, string>(0, "RepositoryName", e => e.RepositoryName, (e, v) => e.RepositoryName = v));
-                Add(new Property<int, int>(108, "Size", e => e.Size, (e, v) => e.Size = v));
-                Add(new Property<string, string>(109, "SourceControlContentId", e => e.SourceControlContentId, (e, v) => e.SourceControlContentId = v));
-                Add(new Property<string, string>(112, "WebAddress", e => e.WebAddress, (e, v) => e.WebAddress = v));
+                Add(new Property<int, int>(111, "Size", e => e.Size, (e, v) => e.Size = v));
+                Add(new Property<string, string>(114, "WebAddress", e => e.WebAddress, (e, v) => e.WebAddress = v));
             }
         }
 
@@ -4173,40 +4170,40 @@ namespace Codex.ObjectModel.Implementation
         public partial class SpanDescriptor : SingletonDescriptorBase<Span, ISpan, SpanDescriptor>, ICreate<SpanDescriptor>
         {
             static SpanDescriptor ICreate<SpanDescriptor>.Create() => new SpanDescriptor();
-            SpanDescriptor() : base(36, 2)
+            SpanDescriptor() : base(37, 2)
             {
-                Add(new Property<int, int>(35, "Length", e => e.Length, (e, v) => e.Length = v));
-                Add(new Property<int, int>(36, "Start", e => e.Start, (e, v) => e.Start = v));
+                Add(new Property<int, int>(36, "Length", e => e.Length, (e, v) => e.Length = v));
+                Add(new Property<int, int>(37, "Start", e => e.Start, (e, v) => e.Start = v));
             }
         }
 
         public partial class StoredBoundSourceFileDescriptor : SingletonDescriptorBase<StoredBoundSourceFile, IStoredBoundSourceFile, StoredBoundSourceFileDescriptor>, ICreate<StoredBoundSourceFileDescriptor>
         {
             static StoredBoundSourceFileDescriptor ICreate<StoredBoundSourceFileDescriptor>.Create() => new StoredBoundSourceFileDescriptor();
-            StoredBoundSourceFileDescriptor() : base(116, 6)
+            StoredBoundSourceFileDescriptor() : base(118, 6)
             {
-                Add(new Property<BoundSourceFile, IBoundSourceFile>(113, "BoundSourceFile", e => e.BoundSourceFile, (e, v) => e.BoundSourceFile = v));
+                Add(new Property<BoundSourceFile, IBoundSourceFile>(115, "BoundSourceFile", e => e.BoundSourceFile, (e, v) => e.BoundSourceFile = v));
                 Add(new Property<ClassificationListModel, IClassificationListModel>(22, "CompressedClassifications", e => e.CompressedClassifications, (e, v) => e.CompressedClassifications = v));
-                Add(new Property<ReferenceListModel, IReferenceListModel>(114, "CompressedReferences", e => e.CompressedReferences, (e, v) => e.CompressedReferences = v));
+                Add(new Property<ReferenceListModel, IReferenceListModel>(116, "CompressedReferences", e => e.CompressedReferences, (e, v) => e.CompressedReferences = v));
                 Add(new ListProperty<CodeSymbol, ICodeSymbol>(13, "References", e => e.References, (e, v) => e.References = v));
-                Add(new ListProperty<ReadOnlyMemory<byte>, ReadOnlyMemory<byte>>(115, "SemanticData", e => e.SemanticData, (e, v) => e.SemanticData = v));
-                Add(new ListProperty<string, string>(116, "SourceFileContentLines", e => e.SourceFileContentLines, (e, v) => e.SourceFileContentLines = v));
+                Add(new ListProperty<ReadOnlyMemory<byte>, ReadOnlyMemory<byte>>(117, "SemanticData", e => e.SemanticData, (e, v) => e.SemanticData = v));
+                Add(new ListProperty<string, string>(118, "SourceFileContentLines", e => e.SourceFileContentLines, (e, v) => e.SourceFileContentLines = v));
             }
         }
 
         public partial class StoredFilterDescriptor : SingletonDescriptorBase<StoredFilter, IStoredFilter, StoredFilterDescriptor>, ICreate<StoredFilterDescriptor>
         {
             static StoredFilterDescriptor ICreate<StoredFilterDescriptor>.Create() => new StoredFilterDescriptor();
-            StoredFilterDescriptor() : base(120, 9)
+            StoredFilterDescriptor() : base(122, 9)
             {
-                Add(new Property<int, int>(117, "Cardinality", e => e.Cardinality, (e, v) => e.Cardinality = v));
-                Add(new Property<CommitInfo, ICommitInfo>(118, "CommitInfo", e => e.CommitInfo, (e, v) => e.CommitInfo = v));
+                Add(new Property<int, int>(119, "Cardinality", e => e.Cardinality, (e, v) => e.Cardinality = v));
+                Add(new Property<CommitInfo, ICommitInfo>(120, "CommitInfo", e => e.CommitInfo, (e, v) => e.CommitInfo = v));
                 Add(new Property<MurmurHash, MurmurHash>(16, "EntityContentId", e => e.EntityContentId, (e, v) => e.EntityContentId = v));
                 Add(new Property<int, int>(17, "EntityContentSize", e => e.EntityContentSize, (e, v) => e.EntityContentSize = v));
-                Add(new Property<string, string>(119, "FilterHash", e => e.FilterHash, (e, v) => e.FilterHash = v));
+                Add(new Property<string, string>(121, "FilterHash", e => e.FilterHash, (e, v) => e.FilterHash = v));
                 Add(new Property<bool, bool>(18, "IsAdded", e => e.IsAdded, (e, v) => e.IsAdded = v));
                 Add(new Property<int, int>(19, "StableId", e => e.StableId, (e, v) => e.StableId = v));
-                Add(new Property<byte[], byte[]>(120, "StableIds", e => e.StableIds, (e, v) => e.StableIds = v));
+                Add(new Property<byte[], byte[]>(122, "StableIds", e => e.StableIds, (e, v) => e.StableIds = v));
                 Add(new Property<MurmurHash, MurmurHash>(20, "Uid", e => e.Uid, (e, v) => e.Uid = v));
             }
         }
@@ -4214,65 +4211,65 @@ namespace Codex.ObjectModel.Implementation
         public partial class StoredRepositoryGroupInfoDescriptor : SingletonDescriptorBase<StoredRepositoryGroupInfo, IStoredRepositoryGroupInfo, StoredRepositoryGroupInfoDescriptor>, ICreate<StoredRepositoryGroupInfoDescriptor>
         {
             static StoredRepositoryGroupInfoDescriptor ICreate<StoredRepositoryGroupInfoDescriptor>.Create() => new StoredRepositoryGroupInfoDescriptor();
-            StoredRepositoryGroupInfoDescriptor() : base(121, 1)
+            StoredRepositoryGroupInfoDescriptor() : base(123, 1)
             {
-                Add(new Property<ImmutableSortedSet<string>, ImmutableSortedSet<string>>(121, "ActiveRepos", e => e.ActiveRepos, (e, v) => e.ActiveRepos = v));
+                Add(new Property<ImmutableSortedSet<string>, ImmutableSortedSet<string>>(123, "ActiveRepos", e => e.ActiveRepos, (e, v) => e.ActiveRepos = v));
             }
         }
 
         public partial class StoredRepositoryGroupSettingsDescriptor : SingletonDescriptorBase<StoredRepositoryGroupSettings, IStoredRepositoryGroupSettings, StoredRepositoryGroupSettingsDescriptor>, ICreate<StoredRepositoryGroupSettingsDescriptor>
         {
             static StoredRepositoryGroupSettingsDescriptor ICreate<StoredRepositoryGroupSettingsDescriptor>.Create() => new StoredRepositoryGroupSettingsDescriptor();
-            StoredRepositoryGroupSettingsDescriptor() : base(123, 2)
+            StoredRepositoryGroupSettingsDescriptor() : base(125, 2)
             {
-                Add(new Property<string, string>(122, "Base", e => e.Base, (e, v) => e.Base = v));
-                Add(new Property<ImmutableHashSet<RepoName>, ImmutableHashSet<RepoName>>(123, "Excludes", e => e.Excludes, (e, v) => e.Excludes = v));
+                Add(new Property<string, string>(124, "Base", e => e.Base, (e, v) => e.Base = v));
+                Add(new Property<ImmutableHashSet<RepoName>, ImmutableHashSet<RepoName>>(125, "Excludes", e => e.Excludes, (e, v) => e.Excludes = v));
             }
         }
 
         public partial class StoredRepositoryInfoDescriptor : SingletonDescriptorBase<StoredRepositoryInfo, IStoredRepositoryInfo, StoredRepositoryInfoDescriptor>, ICreate<StoredRepositoryInfoDescriptor>
         {
             static StoredRepositoryInfoDescriptor ICreate<StoredRepositoryInfoDescriptor>.Create() => new StoredRepositoryInfoDescriptor();
-            StoredRepositoryInfoDescriptor() : base(73, 1)
+            StoredRepositoryInfoDescriptor() : base(74, 1)
             {
-                Add(new Property<ImmutableSortedSet<string>, ImmutableSortedSet<string>>(73, "Groups", e => e.Groups, (e, v) => e.Groups = v));
+                Add(new Property<ImmutableSortedSet<string>, ImmutableSortedSet<string>>(74, "Groups", e => e.Groups, (e, v) => e.Groups = v));
             }
         }
 
         public partial class StoredRepositorySettingsDescriptor : SingletonDescriptorBase<StoredRepositorySettings, IStoredRepositorySettings, StoredRepositorySettingsDescriptor>, ICreate<StoredRepositorySettingsDescriptor>
         {
             static StoredRepositorySettingsDescriptor ICreate<StoredRepositorySettingsDescriptor>.Create() => new StoredRepositorySettingsDescriptor();
-            StoredRepositorySettingsDescriptor() : base(125, 3)
+            StoredRepositorySettingsDescriptor() : base(127, 3)
             {
-                Add(new Property<RepoAccess, RepoAccess>(124, "Access", e => e.Access, (e, v) => e.Access = v));
-                Add(new Property<bool, bool>(125, "ExplicitGroupsOnly", e => e.ExplicitGroupsOnly, (e, v) => e.ExplicitGroupsOnly = v));
-                Add(new Property<ImmutableSortedSet<string>, ImmutableSortedSet<string>>(73, "Groups", e => e.Groups, (e, v) => e.Groups = v));
+                Add(new Property<RepoAccess, RepoAccess>(126, "Access", e => e.Access, (e, v) => e.Access = v));
+                Add(new Property<Nullable<bool>, Nullable<bool>>(127, "ExplicitGroupsOnly", e => e.ExplicitGroupsOnly, (e, v) => e.ExplicitGroupsOnly = v));
+                Add(new Property<ImmutableSortedSet<string>, ImmutableSortedSet<string>>(74, "Groups", e => e.Groups, (e, v) => e.Groups = v));
             }
         }
 
         public partial class SymbolReferenceListDescriptor : SingletonDescriptorBase<SymbolReferenceList, ISymbolReferenceList, SymbolReferenceListDescriptor>, ICreate<SymbolReferenceListDescriptor>
         {
             static SymbolReferenceListDescriptor ICreate<SymbolReferenceListDescriptor>.Create() => new SymbolReferenceListDescriptor();
-            SymbolReferenceListDescriptor() : base(126, 3)
+            SymbolReferenceListDescriptor() : base(128, 3)
             {
-                Add(new Property<SharedReferenceInfoSpanModel, ISharedReferenceInfoSpanModel>(126, "CompressedSpans", e => e.CompressedSpans, (e, v) => e.CompressedSpans = v));
-                Add(new ListProperty<SharedReferenceInfoSpan, ISharedReferenceInfoSpan>(96, "Spans", e => e.Spans, (e, v) => e.Spans = v));
-                Add(new Property<ICodeSymbol, ICodeSymbol>(97, "Symbol", e => e.Symbol, (e, v) => e.Symbol = v));
+                Add(new Property<SharedReferenceInfoSpanModel, ISharedReferenceInfoSpanModel>(128, "CompressedSpans", e => e.CompressedSpans, (e, v) => e.CompressedSpans = v));
+                Add(new ListProperty<SharedReferenceInfoSpan, ISharedReferenceInfoSpan>(98, "Spans", e => e.Spans, (e, v) => e.Spans = v));
+                Add(new Property<ICodeSymbol, ICodeSymbol>(99, "Symbol", e => e.Symbol, (e, v) => e.Symbol = v));
             }
         }
 
         public partial class SymbolSpanDescriptor : SingletonDescriptorBase<SymbolSpan, ISymbolSpan, SymbolSpanDescriptor>, ICreate<SymbolSpanDescriptor>
         {
             static SymbolSpanDescriptor ICreate<SymbolSpanDescriptor>.Create() => new SymbolSpanDescriptor();
-            SymbolSpanDescriptor() : base(86, 7)
+            SymbolSpanDescriptor() : base(88, 7)
             {
-                Add(new Property<int, int>(35, "Length", e => e.Length, (e, v) => e.Length = v));
-                Add(new Property<int, int>(77, "LineIndex", e => e.LineIndex, (e, v) => e.LineIndex = v));
-                Add(new Property<int, int>(78, "LineNumber", e => e.LineNumber, (e, v) => e.LineNumber = v));
-                Add(new Property<int, int>(79, "LineOffset", e => e.LineOffset, (e, v) => e.LineOffset = v));
-                Add(new Property<int, int>(80, "LineSpanStart", e => e.LineSpanStart, (e, v) => e.LineSpanStart = v));
-                Add(new Property<CharString, CharString>(86, "LineSpanText", e => e.LineSpanText, (e, v) => e.LineSpanText = v));
-                Add(new Property<int, int>(36, "Start", e => e.Start, (e, v) => e.Start = v));
+                Add(new Property<int, int>(36, "Length", e => e.Length, (e, v) => e.Length = v));
+                Add(new Property<int, int>(78, "LineIndex", e => e.LineIndex, (e, v) => e.LineIndex = v));
+                Add(new Property<int, int>(79, "LineNumber", e => e.LineNumber, (e, v) => e.LineNumber = v));
+                Add(new Property<int, int>(80, "LineOffset", e => e.LineOffset, (e, v) => e.LineOffset = v));
+                Add(new Property<int, int>(81, "LineSpanStart", e => e.LineSpanStart, (e, v) => e.LineSpanStart = v));
+                Add(new Property<CharString, CharString>(88, "LineSpanText", e => e.LineSpanText, (e, v) => e.LineSpanText = v));
+                Add(new Property<int, int>(37, "Start", e => e.Start, (e, v) => e.Start = v));
             }
         }
 
@@ -4293,34 +4290,34 @@ namespace Codex.ObjectModel.Implementation
         public partial class TextLineSpanDescriptor : SingletonDescriptorBase<TextLineSpan, ITextLineSpan, TextLineSpanDescriptor>, ICreate<TextLineSpanDescriptor>
         {
             static TextLineSpanDescriptor ICreate<TextLineSpanDescriptor>.Create() => new TextLineSpanDescriptor();
-            TextLineSpanDescriptor() : base(86, 7)
+            TextLineSpanDescriptor() : base(88, 7)
             {
-                Add(new Property<int, int>(35, "Length", e => e.Length, (e, v) => e.Length = v));
-                Add(new Property<int, int>(77, "LineIndex", e => e.LineIndex, (e, v) => e.LineIndex = v));
-                Add(new Property<int, int>(78, "LineNumber", e => e.LineNumber, (e, v) => e.LineNumber = v));
-                Add(new Property<int, int>(79, "LineOffset", e => e.LineOffset, (e, v) => e.LineOffset = v));
-                Add(new Property<int, int>(80, "LineSpanStart", e => e.LineSpanStart, (e, v) => e.LineSpanStart = v));
-                Add(new Property<CharString, CharString>(86, "LineSpanText", e => e.LineSpanText, (e, v) => e.LineSpanText = v));
-                Add(new Property<int, int>(36, "Start", e => e.Start, (e, v) => e.Start = v));
+                Add(new Property<int, int>(36, "Length", e => e.Length, (e, v) => e.Length = v));
+                Add(new Property<int, int>(78, "LineIndex", e => e.LineIndex, (e, v) => e.LineIndex = v));
+                Add(new Property<int, int>(79, "LineNumber", e => e.LineNumber, (e, v) => e.LineNumber = v));
+                Add(new Property<int, int>(80, "LineOffset", e => e.LineOffset, (e, v) => e.LineOffset = v));
+                Add(new Property<int, int>(81, "LineSpanStart", e => e.LineSpanStart, (e, v) => e.LineSpanStart = v));
+                Add(new Property<CharString, CharString>(88, "LineSpanText", e => e.LineSpanText, (e, v) => e.LineSpanText = v));
+                Add(new Property<int, int>(37, "Start", e => e.Start, (e, v) => e.Start = v));
             }
         }
 
         public partial class TextLineSpanResultDescriptor : SingletonDescriptorBase<TextLineSpanResult, ITextLineSpanResult, TextLineSpanResultDescriptor>, ICreate<TextLineSpanResultDescriptor>
         {
             static TextLineSpanResultDescriptor ICreate<TextLineSpanResultDescriptor>.Create() => new TextLineSpanResultDescriptor();
-            TextLineSpanResultDescriptor() : base(127, 2)
+            TextLineSpanResultDescriptor() : base(129, 2)
             {
                 Add(new Property<IProjectFileScopeEntity, IProjectFileScopeEntity>(24, "File", e => e.File, (e, v) => e.File = v));
-                Add(new Property<TextLineSpan, ITextLineSpan>(127, "TextSpan", e => e.TextSpan, (e, v) => e.TextSpan = v));
+                Add(new Property<TextLineSpan, ITextLineSpan>(129, "TextSpan", e => e.TextSpan, (e, v) => e.TextSpan = v));
             }
         }
 
         public partial class TextSourceSearchModelDescriptor : SingletonDescriptorBase<TextSourceSearchModel, ITextSourceSearchModel, TextSourceSearchModelDescriptor>, ICreate<TextSourceSearchModelDescriptor>
         {
             static TextSourceSearchModelDescriptor ICreate<TextSourceSearchModelDescriptor>.Create() => new TextSourceSearchModelDescriptor();
-            TextSourceSearchModelDescriptor() : base(128, 7)
+            TextSourceSearchModelDescriptor() : base(130, 7)
             {
-                Add(new Property<IChunkReference, IChunkReference>(128, "Chunk", e => e.Chunk, (e, v) => e.Chunk = v));
+                Add(new Property<IChunkReference, IChunkReference>(130, "Chunk", e => e.Chunk, (e, v) => e.Chunk = v));
                 Add(new Property<MurmurHash, MurmurHash>(16, "EntityContentId", e => e.EntityContentId, (e, v) => e.EntityContentId = v));
                 Add(new Property<int, int>(17, "EntityContentSize", e => e.EntityContentSize, (e, v) => e.EntityContentSize = v));
                 Add(new Property<IProjectFileScopeEntity, IProjectFileScopeEntity>(24, "File", e => e.File, (e, v) => e.File = v));
@@ -4333,10 +4330,10 @@ namespace Codex.ObjectModel.Implementation
         public partial class UserSettingsDescriptor : SingletonDescriptorBase<UserSettings, IUserSettings, UserSettingsDescriptor>, ICreate<UserSettingsDescriptor>
         {
             static UserSettingsDescriptor ICreate<UserSettingsDescriptor>.Create() => new UserSettingsDescriptor();
-            UserSettingsDescriptor() : base(129, 2)
+            UserSettingsDescriptor() : base(131, 2)
             {
-                Add(new Property<Nullable<RepoAccess>, Nullable<RepoAccess>>(124, "Access", e => e.Access, (e, v) => e.Access = v));
-                Add(new Property<DateTime, DateTime>(129, "ExpirationUtc", e => e.ExpirationUtc, (e, v) => e.ExpirationUtc = v));
+                Add(new Property<Nullable<RepoAccess>, Nullable<RepoAccess>>(126, "Access", e => e.Access, (e, v) => e.Access = v));
+                Add(new Property<DateTime, DateTime>(131, "ExpirationUtc", e => e.ExpirationUtc, (e, v) => e.ExpirationUtc = v));
             }
         }
     }

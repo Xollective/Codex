@@ -19,26 +19,42 @@ namespace Codex.Utilities
             return task;
         }
 
+        /// <summary>
+        /// Run a task once per key in a map. Optionally allowing forcing a run if shared result matches a condition (normally used
+        /// to force run on failure result).
+        /// </summary>
         public static async Task<TResult> RunOnceAsync<TKey, TResult, TData>(
             this ConcurrentBigMap<TKey, Task<TResult>> taskCompletionMap,
             TKey key,
-            TData data, 
+            TData data,
             Func<TKey, TData, Task<TResult>> runAsync,
-            bool removeOnCompletion = false)
+            bool removeOnCompletion = false,
+            Func<TResult, bool> shouldForceRun = null)
         {
-            if (TryReserveCompletion(taskCompletionMap, key, out var task, out var completion))
+            if (Out.Var(out var reserved, TryReserveCompletion(taskCompletionMap, key, out var task, out var completion)))
             {
+                var mapValue = task;
                 completion.LinkToTask(Out.Var(out task, Out.Invoke(async () =>
                 {
-                    return await runAsync(key, data);
+                    try
+                    {
+                        return await runAsync(key, data);
+                    }
+                    finally
+                    {
+                        if (removeOnCompletion)
+                        {
+                            taskCompletionMap.CompareRemove(key, mapValue);
+                        }
+                    }
                 })));
             }
 
             var result = await task;
 
-            if (removeOnCompletion)
+            if (!reserved && shouldForceRun?.Invoke(result) == true)
             {
-                taskCompletionMap.RemoveKey(key);
+                result = await runAsync(key, data);
             }
 
             return result;
@@ -49,7 +65,7 @@ namespace Codex.Utilities
                 out TaskSourceSlim<TResult> addedTaskCompletionSource,
                 Out<Task<TResult>> task = default)
         {
-            task.SetOrCreate(taskSlot);
+            task.Ensure(taskSlot);
             if (task.Value != null)
             {
                 addedTaskCompletionSource = default;
@@ -101,8 +117,8 @@ namespace Codex.Utilities
                 var int_comparand = Unsafe.As<T, int>(ref comparand);
                 var int_result = Interlocked.CompareExchange(
                     ref Unsafe.As<T, int>(ref location),
-                    int_comparand,
-                    Unsafe.As<T, int>(ref value));
+                    comparand: int_comparand,
+                    value: Unsafe.As<T, int>(ref value));
                 exchanged.Set(int_comparand == int_result);
                 return Unsafe.As<int, T>(ref int_result);
             }
@@ -112,8 +128,8 @@ namespace Codex.Utilities
                 var int_comparand = Unsafe.As<T, long>(ref comparand);
                 var int_result = Interlocked.CompareExchange(
                     ref Unsafe.As<T, long>(ref location),
-                    int_comparand,
-                    Unsafe.As<T, long>(ref value));
+                    comparand: int_comparand,
+                    value: Unsafe.As<T, long>(ref value));
                 exchanged.Set(int_comparand == int_result);
                 return Unsafe.As<long, T>(ref int_result);
             }
@@ -161,10 +177,20 @@ namespace Codex.Utilities
             }
         }
 
+        public static void Max(ref long location, long value)
+        {
+            while (Out.TrueVar(out var current, location)
+                && value > current
+                && !TryCompareExchange(ref location, value, current))
+            {
+            }
+        }
+
         public static int InterlockedIncrement(this ref int location) => Interlocked.Increment(ref location);
         public static int InterlockedDecrement(this ref int location) => Interlocked.Decrement(ref location);
         public static int InterlockedAdd(this ref int location, int value) => Interlocked.Add(ref location, value);
         public static long InterlockedAdd(this ref long location, long value) => Interlocked.Add(ref location, value);
+        public static void AtomixMax(this ref long location, long value) => Max(ref location, value);
         public static long InterlockedAdd(this ref TimeSpan location, TimeSpan value) => 
             Interlocked.Add(ref Unsafe.As<TimeSpan, long>(ref location), Unsafe.As<TimeSpan, long>(ref value));
 

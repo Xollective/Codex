@@ -7,14 +7,19 @@ namespace Codex.Utilities
     /// </summary>
     public static class NumberUtils
     {
-        public static int Ceiling(int numerator, int denominator)
+        public static int DivCeiling(int numerator, int denominator)
+        {
+            return 1 + ((numerator - 1) / denominator);
+        }
+
+        public static long DivCeiling(long numerator, long denominator)
         {
             return 1 + ((numerator - 1) / denominator);
         }
 
         public static int CeilingMultiple(int numerator, int unit)
         {
-            return Ceiling(numerator, unit) * unit;
+            return DivCeiling(numerator, unit) * unit;
         }
 
         public static int Floor(int numerator, int denominator)
@@ -29,7 +34,7 @@ namespace Codex.Utilities
 
         public static int GetByteWidth(int maxValue)
         {
-            return Ceiling(FindHighestBitSet(maxValue) + 1, 8);
+            return DivCeiling(FindHighestBitSet(maxValue) + 1, 8);
         }
 
         public static int FindHighestBitSet(int n)

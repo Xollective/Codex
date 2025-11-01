@@ -50,6 +50,38 @@ namespace Codex.Utilities
             return tcs.CreateTask(Timeout.InfiniteTimeSpan, default);
         }
 
+        public static IDisposable ReportProgressAsync(TimeSpan period, Action action)
+        {
+            CancellationTokenSource cts = new CancellationTokenSource();
+
+            async void runAsync()
+            {
+                while (!cts.IsCancellationRequested)
+                {
+                    try
+                    {
+                        await Task.Delay(period, cts.Token);
+                    }
+                    catch
+                    {
+                        break;
+                    }
+                    finally
+                    {
+                        action();
+                    }
+                }
+            }
+
+            runAsync();
+
+            return new DisposeAction(() =>
+            {
+                cts.Cancel();
+                cts.Dispose();
+            });
+        }
+
         /// <summary>
         /// This is a variant of Task.WhenAll which ensures that all exceptions thrown by the tasks are
         /// propagated back through a single <see cref="AggregateException"/>. This is necessary because
@@ -358,6 +390,11 @@ namespace Codex.Utilities
             return new SemaphoreSlim(initialCount: 1, maxCount: 1);
         }
 
+        public static SemaphoreSlim CreateSemaphore(int maxCount, int? initialCount = null)
+        {
+            return new SemaphoreSlim(initialCount: initialCount ?? maxCount, maxCount: maxCount);
+        }
+
         /// <summary>
         /// Asynchronously acquire a semaphore
         /// </summary>
@@ -401,6 +438,12 @@ namespace Codex.Utilities
         }
 
         public static async Task<TResult> ThenAsync<T, TResult>(this Task<T> task, Func<T, Task<TResult>> func)
+        {
+            var source = await task;
+            return await func(source);
+        }
+
+        public static async ValueTask<TResult> ThenAsync<T, TResult>(this ValueTask<T> task, Func<T, ValueTask<TResult>> func)
         {
             var source = await task;
             return await func(source);

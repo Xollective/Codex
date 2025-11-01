@@ -1,3 +1,4 @@
+
 namespace Codex
 {
     public record WrapperCodexStore(ICodexStore Inner, Func<ICodexRepositoryStore, RepositoryStoreInfo, ICodexRepositoryStore> WrapStore) : ICodexStore
@@ -21,6 +22,16 @@ namespace Codex
 
     public record WrapperCodexRepositoryStore(ICodexRepositoryStore InnerStore) : ICodexRepositoryStore
     {
+        bool ICodexRepositoryStore.IsUpToDate(IProjectFileScopeEntity file)
+        {
+            return InnerStore.IsUpToDate(file);
+        }
+
+        bool ICodexRepositoryStore.IsUpToDate(IProjectScopeEntity project)
+        {
+            return InnerStore.IsUpToDate(project);
+        }
+
         public virtual Task AddBoundFilesAsync(IReadOnlyList<BoundSourceFile> files)
         {
             return InnerStore.AddBoundFilesAsync(files);

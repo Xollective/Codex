@@ -30,7 +30,7 @@ namespace Codex.Utilities
             _exitActions = exitActions;
         }
 
-        /// <summary>
+        ///lazy <summary>
         /// Performs actions associated with this <see cref="DisposeAction"/>
         /// </summary>
         public void Dispose()
@@ -43,9 +43,11 @@ namespace Codex.Utilities
 
     public struct DisposeAction<T>(T data, Action<T> disposeAction) : IDisposable
     {
+        public T Data { get; } = data;
+
         public void Dispose()
         {
-            disposeAction(data);
+            disposeAction(Data);
         }
     }
 }

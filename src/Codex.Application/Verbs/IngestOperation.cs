@@ -18,13 +18,13 @@ public record IngestOperation : IndexReadOperationBase
     [Option('i', "in", Required = true, HelpText = "The input directory or a zip file containing analysis data to load.")]
     public string InputPath { get; set; }
 
-    [Option("dirformat", Default = false, HelpText = "Specifies whether to output to analysis directory format.")]
+    [Option("dir-format", Default = false, HelpText = "Specifies whether to output to analysis directory format.")]
     public bool UseDirectoryFormat { get; set; } = false;
 
     [Option("clean", HelpText = "Reset output directory.")]
     public bool Clean { get; set; }
 
-    [Option("cleanStage", Default = true, HelpText = "Reset staging output directory.")]
+    [Option("clean-stage", Default = true, HelpText = "Reset staging output directory.")]
     public bool CleanStaging { get; set; } = true;
 
     [Option("test", HelpText = "Indicates that save should use test mode which disables optimization.")]
@@ -36,34 +36,32 @@ public record IngestOperation : IndexReadOperationBase
     [Option("alias", HelpText = "The alias used to identify the repo during search. NOTE: This supersedes repo name for this purpose, but does not mark files as belonging to a repo with this value")]
     public string? Alias { get; set; }
 
-    [Option("includeType", HelpText = "Specifies inclusion list of search types")]
+    [Option("include-type", HelpText = "Specifies inclusion list of search types")]
     public IList<string> IncludeTypes { get; set; }
 
-    [Option("storedFilters", Default = true, HelpText = "Specifies whether stored filter tracking is enabled")]
+    [Option("stored-filters", Default = true, HelpText = "Specifies whether stored filter tracking is enabled")]
     public bool UseStoredFilters { get; set; } = true;
 
     [Option("dump", HelpText = "Specifies directory to dump search entities.")]
     public string DumpDirectory { get; set; }
 
-    [Option("blobsas", HelpText = "Specifies sas url for a blob store container for storing external files.")]
+    [Option("upload-blob-sas", HelpText = "Specifies sas url for a blob store container for storing external files.")]
     public string BlobContainerSasUrl { get; set; }
 
-    [Option("external", HelpText = "Specifies whether use external storage")]
-    public bool UseExternalStorage { get; set; }
-
-    [Option("stageout", HelpText = "Specifies the staging directory for index with additions")]
+    [Option("stage-out", HelpText = "Specifies the staging directory for index with additions")]
     public string StagingDirectory { get; set; }
 
-    [Option("settingsRoot", HelpText = "Specifies the root directory for settings")]
+    [Option("settings-root", HelpText = "Specifies the root directory for settings")]
     public string SettingsRoot { get; set; }
 
-    [Option("useGitStorage", HelpText = "Specifies whether indexing data should be stored in a git repo at the output directory.")]
+    [Option("use-git-storage", HelpText = "Specifies whether indexing data should be stored in a git repo at the output directory.")]
     public bool UseGitStorage { get; set; }
 
-    [Option("idStorageMode", HelpText = "Specifies whether to use RocksDb or ZoneTree for stable id storage.")]
-    public IdStorageKind IdStorageMode { get; set; } = IdStorageKind.Default;
-
+    [Option("temp", HelpText = "Specifies location to place temp files.")]
     public string TempDirectory { get; set; }
+
+    [Option("id-storage-mode", HelpText = "Specifies whether to use RocksDb or ZoneTree for stable id storage.")]
+    public IdStorageKind IdStorageMode { get; set; } = IdStorageKind.Default;
 
     internal AnalyzeOperation AnalyzeOperation { get; set; }
 
@@ -84,13 +82,20 @@ public record IngestOperation : IndexReadOperationBase
         //GitHelpers.Init();
         await base.InitializeAsync();
 
-        TempDirectory = Path.Combine(OutputDirectory, CodexConstants.RelativeTempDirectory);
+        TempDirectory ??= Path.Combine(OutputDirectory, CodexConstants.RelativeTempDirectory);
+        TempDirectory = TempDirectory?.FluidSelect(t => Path.GetFullPath(t));
+
 
         CleanStaging |= Clean;
 
         OutputDirectory = Path.GetFullPath(OutputDirectory);
 
         if (Clean && Directory.Exists(OutputDirectory))
+        {
+            PathUtilities.ForceDeleteDirectory(OutputDirectory);
+        }
+
+        if (Clean && Directory.Exists(TempDirectory))
         {
             PathUtilities.ForceDeleteDirectory(OutputDirectory);
         }
@@ -152,36 +157,51 @@ public record IngestOperation : IndexReadOperationBase
 
     private async Task LoadAsync(bool finalizePerRepo = true)
     {
-        if (Scan)
-        {
-            var directories = Directory.GetFileSystemEntries(InputPath);
-            int i = 1;
-            foreach (var directory in directories)
-            {
-                Logger.LogMessage($"[{i} of {directories.Length}] Loading {directory}");
-                await LoadCoreAsync(directory);
+        string loadPath(params string[] subPath) => Path.Combine([InputPath, .. subPath]);
+        // Cases
+        // 1. Single analysis store directory
+        // 2. Single analysis store zip
+        // 3. Single nested analysis store directory
+        // 4. Directory containing multiple analysis directories or zips
 
-                // Only clear indices on first use
-                Clean = false;
-                i++;
-            }
-        }
-        else
+        if (File.Exists(InputPath))
         {
+            // 2. Single analysis store zip
             await LoadCoreAsync(InputPath);
+        }
+        else if (Directory.Exists(InputPath))
+        {
+            if (File.Exists(loadPath(DirectoryCodexStore.RepositoryInitializationFileName)))
+            {
+                // 1. Single analysis store directory
+                await LoadCoreAsync(InputPath);
+            }
+            else if (File.Exists(loadPath("store", DirectoryCodexStore.RepositoryInitializationFileName)))
+            {
+                // 2. Single nested analysis store directory
+                await LoadCoreAsync(loadPath("store"));
+            }
+            else
+            {
+                // 4. Directory containing multiple analysis store directories or zips
+                var inputs = Directory.GetFileSystemEntries(InputPath);
+                int i = 1;
+                foreach (var input in inputs)
+                {
+                    Logger.LogMessage($"[{i} of {inputs.Length}] Loading {input}");
+                    await LoadCoreAsync(input);
+
+                    // Only clear indices on first use
+                    Clean = false;
+                    i++;
+                }
+            }
         }
     }
 
     protected async Task LoadCoreAsync(
         string loadDirectory)
     {
-        if (File.Exists(Path.Combine(loadDirectory, @"store\repo.cdx.json")))
-        {
-            loadDirectory = Path.Combine(loadDirectory, "store");
-        }
-
-        if (String.IsNullOrEmpty(loadDirectory)) throw new ArgumentException("Load directory must be specified. Use -d to provide it.");
-
         var loadDirectoryStore = new DirectoryCodexStore(loadDirectory, Logger) { CanReadFilter = CanReadFilter };
         await loadDirectoryStore.ReadAsync(OutputStore, repositoryName: RepoName, finalize: FinalizePerRepo);
     }
@@ -217,7 +237,6 @@ public record IngestOperation : IndexReadOperationBase
             IncludedTypes = IncludeTypes?.Count == 0 ? null : IncludeTypes?.ToHashSet(),
             StoreIndexFilesInGit = UseGitStorage,
             StagingDirectory = StagingDirectory,
-            Alias = Alias,
         };
 
         IObjectStorage getDiskObjectStorage(string relativePath = "")

@@ -76,6 +76,8 @@ namespace Codex.Automation.Workflow
         public bool NoClone;
         public bool Clean;
         public bool NoBuildTag;
+        public bool DisableUpload;
+        public bool DisablePrepare;
         public bool UploadBinlogs;
         public bool GenerateCompilerLogs;
         public Dictionary<string, string> PersonalAccessTokens = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

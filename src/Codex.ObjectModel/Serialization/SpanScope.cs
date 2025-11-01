@@ -1,10 +1,11 @@
+using System.Collections;
 using System.Diagnostics.ContractsLight;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace Codex.Utilities;
 
-public unsafe struct SpanScope<T> : IDisposable
+public unsafe struct SpanScope<T> : IDisposable, IIndexable<T>
 {
     private void* _ptr;
     private int _length;
@@ -14,6 +15,10 @@ public unsafe struct SpanScope<T> : IDisposable
         _ptr = ptr;
         _length = length;
     }
+
+    public T this[int index] => Span[index];
+
+    public int Count => _length;
 
     public Span<T> Span
     {
@@ -45,8 +50,7 @@ public unsafe struct SpanScope<T> : IDisposable
     }
 }
 
-public unsafe struct ReadOnlySpanScope<T> : IDisposable
-    where T : unmanaged
+public unsafe struct ReadOnlySpanScope<T> : IDisposable, IIndexable<T>
 {
     private void* _ptr;
     private int _length;
@@ -56,6 +60,10 @@ public unsafe struct ReadOnlySpanScope<T> : IDisposable
         _ptr = ptr;
         _length = length;
     }
+
+    public T this[int index] => Span[index];
+
+    public int Count => _length;
 
     public ReadOnlySpan<T> Span
     {

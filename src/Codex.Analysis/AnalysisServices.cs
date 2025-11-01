@@ -70,6 +70,26 @@ namespace Codex.Import
             ParallelProcessProjectFiles = false;
         }
 
+        public AnalysisAction GetFileAction(IProjectFileScopeEntity file)
+        {
+            if (RepositoryStore?.IsUpToDate(file) == true)
+            {
+                return AnalysisAction.UpToDate;
+            }
+
+            return AnalysisAction.Analyze;
+        }
+
+        public AnalysisAction GetProjectAction(IProjectScopeEntity project)
+        {
+            if (RepositoryStore?.IsUpToDate(project) == true)
+            {
+                return AnalysisAction.UpToDate;
+            }
+
+            return AnalysisAction.Analyze;
+        }
+
         public Repo CreateRepo(string name, string root = null)
         {
             Repo repo;

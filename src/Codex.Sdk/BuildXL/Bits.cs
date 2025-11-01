@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Diagnostics.ContractsLight;
+using System.Runtime.CompilerServices;
 
 namespace BuildXL.Utilities
 {
@@ -201,6 +202,37 @@ namespace BuildXL.Utilities
                 n |= n >> 32;
                 return n - (n >> 1);
             }
+        }
+
+        /// <summary>
+        /// Returns the next highest power of two, or the current value if it's already a power of two or zero </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int NextHighestPowerOfTwo(int v)
+        {
+            v--;
+            v |= v >> 1;
+            v |= v >> 2;
+            v |= v >> 4;
+            v |= v >> 8;
+            v |= v >> 16;
+            v++;
+            return v;
+        }
+
+        /// <summary>
+        /// Returns the next highest power of two, or the current value if it's already a power of two or zero </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static long NextHighestPowerOfTwo(long v)
+        {
+            v--;
+            v |= v >> 1;
+            v |= v >> 2;
+            v |= v >> 4;
+            v |= v >> 8;
+            v |= v >> 16;
+            v |= v >> 32;
+            v++;
+            return v;
         }
 
         /// <summary>

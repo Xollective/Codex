@@ -170,7 +170,7 @@ namespace Codex.ObjectModel.Implementation
                 }
             }
 
-            var segmentsLength = NumberUtils.Ceiling(spans.Count, SegmentSpanCount);
+            var segmentsLength = NumberUtils.DivCeiling(spans.Count, SegmentSpanCount);
             int offset = 0;
             for (int segmentIndex = 0; segmentIndex < segmentsLength; segmentIndex++, offset += SegmentSpanCount)
             {

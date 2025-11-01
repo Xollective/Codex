@@ -3,6 +3,7 @@ using Codex.Logging;
 using Codex.Lucene.Distributed;
 using Codex.Lucene.Framework;
 using Codex.ObjectModel.Implementation;
+using Codex.Sdk.Storage;
 using Codex.Search;
 using Codex.Storage;
 using Codex.Storage.BlockLevel;
@@ -41,15 +42,13 @@ namespace Codex.Lucene.Search
 
         public bool StoreIndexFilesInGit { get; set; }
 
-        public string StagingDirectory { get; set; }
+        public IndexDirectoryLayout? StagingDirectory { get; set; }
 
         public string SettingsRoot { get; set; } = "config";
 
-        public bool IsStaging => !string.IsNullOrEmpty(StagingDirectory);
+        public bool IsStaging => StagingDirectory != null;
 
         public bool ApplyStagedFiles { get; set; }
-
-        public bool WriteBlockEntities { get; set; }
 
         public bool DisableIndex { get; set; }
 
@@ -65,13 +64,12 @@ namespace Codex.Lucene.Search
 
         public readonly string DatabaseRelativeDirectory = "db";
 
-        public string StagingOverlayDirectory => !IsStaging ? null : Path.Combine(StagingDirectory, "overlay");
+        public IndexDirectoryLayout? StagingOverlayDirectory => StagingDirectory?.OverlayDirectory;
 
-        public string StagingIndexDirectory => !IsStaging ? null : Path.Combine(StagingDirectory, "stageindex");
+        public string StagingIndexDirectory => StagingDirectory?.StagingIndexDirectory;
+        public string StagingDatabaseDirectory => StagingOverlayDirectory?.DatabaseDirectory;
 
-        public string StagingDatabaseDirectory => !IsStaging ? null : Path.Combine(StagingOverlayDirectory, DatabaseRelativeDirectory);
-
-        public string DatabaseDirectory => Path.Combine(Directory, DatabaseRelativeDirectory);
+        public string DatabaseDirectory => Directory?.DatabaseDirectory;
 
         public bool EnsureUniquePaths { get; set; }
 
@@ -87,7 +85,7 @@ namespace Codex.Lucene.Search
 
     public record LuceneConfiguration : CodexBaseConfiguration
     {
-        public string Directory { get; set; }
+        public IndexDirectoryLayout Directory { get; set; }
 
         public int StoredFilterCacheCount = 100;
 

@@ -103,7 +103,7 @@ namespace Codex.Lucene.Search
                 case SearchBehavior.PrefixFullName:
                     {
                         Placeholder.Todo("Long term handling (hash full term)");
-                        foreach (var processedValue in SearchUtilities.EnumerateContainerQualifiedNameFieldValues(value))
+                        foreach (var processedValue in SearchUtilities.EnumerateContainerQualifiedNameFieldValues(value, info.IsPath))
                         {
                             Document.Add(new StringField(mapping.Name, processedValue, Field.Store.NO));
                         }
@@ -131,8 +131,6 @@ namespace Codex.Lucene.Search
                     {
                         Document.Add(new SortedDocValuesField(mapping.Name, new BytesRef(value)));
                     }
-                    break;
-                case SearchBehavior.HierarchicalPath:
                     break;
                 case SearchBehavior.FullText:
                     
