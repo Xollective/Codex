@@ -314,6 +314,11 @@ namespace BuildXL.Utilities.Collections
         }
 
         /// <summary>
+        /// Gets a reference to item at the given index
+        /// </summary>
+        public MemoryRef<TItem> ItemRef(int index) => m_items.ItemRef(index);
+
+        /// <summary>
         /// Gets an unsafe read-only accessor over the items in the set.
         /// </summary>
         /// <remarks>

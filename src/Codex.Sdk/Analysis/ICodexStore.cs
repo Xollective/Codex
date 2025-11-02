@@ -44,6 +44,10 @@ namespace Codex
 
     public interface ICodexRepositoryStore
     {
+        bool IsUpToDate(IProjectFileScopeEntity file) => false;
+
+        bool IsUpToDate(IProjectScopeEntity project) => false;
+
         /// <summary>
         /// Adds source files with semantic binding information.
         /// Affected search stores:
@@ -55,7 +59,6 @@ namespace Codex
         /// <see cref="SearchTypes.CommitFiles"/>
         /// </summary>
         Task AddBoundFilesAsync(IReadOnlyList<BoundSourceFile> files);
-
         /// <summary>
         /// Adds repository projects
         /// Affected search stores:

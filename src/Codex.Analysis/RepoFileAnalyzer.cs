@@ -44,7 +44,13 @@ namespace Codex.Analysis.Files
         {
             try
             {
-                ReportStartAnalyze(file);
+                var action = services.GetFileAction(file);
+                ReportStartAnalyze(file, action);
+
+                if (action != AnalysisAction.Analyze)
+                {
+                    return;
+                }
 
                 SourceFile sourceFile = file.InMemorySourceFileBuilder?.SourceFile ?? CreateSourceFile(services, file);
 
@@ -105,10 +111,10 @@ namespace Codex.Analysis.Files
             await UploadSourceFile(services, file, boundSourceFile);
         }
 
-        protected static void ReportStartAnalyze(RepoFile file)
+        protected static void ReportStartAnalyze(RepoFile file, AnalysisAction action)
         {
             int analyzeCount = Interlocked.Increment(ref file.PrimaryProject.Repo.AnalyzeCount);
-            file.PrimaryProject.Repo.AnalysisServices.Logger.WriteLine($"Analyzing source: '{file.PrimaryProject.ProjectId}::{file.LogicalPath}' ({analyzeCount} of {file.PrimaryProject.Repo.FileCount})");
+            file.PrimaryProject.Repo.AnalysisServices.Logger.WriteLine($"[{action}] source: '{file.PrimaryProject.ProjectId}::{file.LogicalPath}' ({analyzeCount} of {file.PrimaryProject.Repo.FileCount})");
         }
 
         protected BoundSourceFileBuilder CreateBuilder(SourceFile sourceFile, RepoFile repoFile, string projectId)

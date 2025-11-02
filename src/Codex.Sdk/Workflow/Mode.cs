@@ -15,7 +15,7 @@ namespace Codex.Automation.Workflow
         Codex = 1 << 22,
         Test = 1 << 23,
 
-        FullAnalyze = Prepare | AnalyzeOnly | UploadOnly,
+        Analyze = Prepare | AnalyzeOnly,
         Upload = Prepare | UploadOnly,
         Build = Prepare | BuildOnly,
         Index = Prepare | IndexOnly,
@@ -27,9 +27,9 @@ namespace Codex.Automation.Workflow
 
         TestBuildAndAnalyze = Build | AnalyzeOnly | UploadOnly | Test,
 
-        FullIndexNoUpload = Prepare | BuildOnly | AnalyzeOnly | IndexOnly,
+        FullAnalyze = Prepare | BuildOnly | AnalyzeOnly | UploadOnly,
 
-        FullIndex = FullIndexNoUpload | Upload,
+        FullIndex = Prepare | BuildOnly | AnalyzeOnly | IndexOnly | UploadOnly,
 
         GetLocation = 0,
         Cli

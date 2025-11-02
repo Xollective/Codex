@@ -4,6 +4,8 @@ namespace Codex.ObjectModel
 {
     public abstract record ValueVisitorBase : IVisitor
     {
+        public virtual VisitorOptions Options { get; set; }
+
         private static SearchBehaviorInfo TermBehavior = new SearchBehaviorInfo(SearchBehavior.Term);
 
         public abstract bool HandlesNoneBehavior { get; }

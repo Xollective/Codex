@@ -26,6 +26,13 @@ public record SegmentedListWriter<T>(int SegmentCount = 1, bool TrackSegments = 
         _lastSegmentEnd = Items.Count;
     }
 
+    public void Reset()
+    {
+        Items.Reset();
+        _lastSegmentEnd = 0;
+        TrackedSegments.Reset();
+    }
+
     public ListSegment<T> CreateSegment(bool advance = true)
     {
         if (!TrackSegments && _lastSegmentEnd == Items.Count)

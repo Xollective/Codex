@@ -9,14 +9,27 @@ using System.Threading.Tasks;
 namespace System.IO
 {
     // Forwards all calls to an inner stream except where overridden in a derived class.
-    public abstract class DelegatingStream(Stream innerStream, Stream writeStream = null) : Stream
+    public class DelegatingStream(Stream innerStream, Stream writeStream = null) : Stream
     {
+        public bool DisposeInnerStream { get; init; } = true;
+        public bool DisposeWriteStream { get; init; } = true;
+
         protected Stream WriteStream { get; set; } = writeStream ?? innerStream;
 
         protected Stream InnerStream { get; set; } = innerStream;
+
+        /// <summary>
+        /// Action to perform on dispose
+        /// </summary>
+        public Action? OnDispose { get; init; }
        
         protected virtual void BeforeWrite(int length)
         {
+        }
+
+        protected virtual int AfterRead(int read)
+        {
+            return read;
         }
 
         #region Properties
@@ -70,7 +83,17 @@ namespace System.IO
         {
             if (disposing)
             {
-                InnerStream.Dispose();
+                if (DisposeInnerStream)
+                {
+                    InnerStream.Dispose();
+                }
+
+                if (DisposeWriteStream && ((WriteStream != InnerStream) || !DisposeInnerStream))
+                {
+                    WriteStream.Dispose();
+                }
+
+                OnDispose?.Invoke();
             }
             base.Dispose(disposing);
         }
@@ -89,27 +112,29 @@ namespace System.IO
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            return InnerStream.Read(buffer, offset, count);
+            return AfterRead(InnerStream.Read(buffer, offset, count));
         }
 
         public override int Read(Span<byte> buffer)
         {
-            return InnerStream.Read(buffer);
+            return AfterRead(InnerStream.Read(buffer));
         }
 
         public override int ReadByte()
         {
-            return InnerStream.ReadByte();
+            var result = InnerStream.ReadByte();
+            AfterRead(result >= 0 ? 1 : 0);
+            return result;
         }
 
-        public override Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
         {
-            return InnerStream.ReadAsync(buffer, offset, count, cancellationToken);
+            return AfterRead(await InnerStream.ReadAsync(buffer, offset, count, cancellationToken));
         }
 
-        public override ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+        public override async ValueTask<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
         {
-            return InnerStream.ReadAsync(buffer, cancellationToken);
+            return AfterRead(await InnerStream.ReadAsync(buffer, cancellationToken));
         }
 
         public override IAsyncResult BeginRead(byte[] buffer, int offset, int count, AsyncCallback? callback, object? state)
@@ -119,7 +144,7 @@ namespace System.IO
 
         public override int EndRead(IAsyncResult asyncResult)
         {
-            return InnerStream.EndRead(asyncResult);
+            return AfterRead(InnerStream.EndRead(asyncResult));
         }
 
         public override void CopyTo(Stream destination, int bufferSize)

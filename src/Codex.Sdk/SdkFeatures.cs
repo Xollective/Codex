@@ -1,3 +1,4 @@
+using BuildXL.Utilities.Collections;
 using Codex.Logging;
 using Codex.ObjectModel;
 using Codex.Sdk.Utilities;
@@ -11,11 +12,22 @@ namespace Codex
     /// <summary>
     /// Defines on/off state of experimental features
     /// </summary>
-    public static class SdkFeatures
+    public class SdkFeatures : Features
     {
+        static SdkFeatures()
+        {
+            FeaturesByName = FeaturesByName.AddRange(GetFeaturesByName<SdkFeatures>());
+        }
+
+        public static readonly FeatureSwitch<Func<string, FileStream, SharedBuffersReadStream, Stream?>> TryGetAnalysisZipParallelReadStream = new();
+
+        public static readonly FeatureSwitch<ITestAssertions?> TestAssertions = new();
+
         public static readonly FeatureSwitch<Parsed<ShortHash>?> DebugEntityHash = new();
 
         public static readonly FeatureSwitch<Parsed<ShortHash>?> DebugAddressEntryHash = new();
+
+        public static readonly FeatureSwitch<bool> UseSparseFileBuffers = true;
 
         public static readonly FeatureSwitch<int> WebProgramCacheLimit = 100;
 
@@ -24,6 +36,8 @@ namespace Codex
         public static readonly FeatureSwitch<bool> CheckBlobReassignment = false;
 
         public static readonly FeatureSwitch<int?> IngestParallelism = default(int?);
+
+        public static readonly FeatureSwitch<int?> IngestGcInterval = 5000;
 
         public static readonly FeatureSwitch<Func<string, bool>> CanReadFilter = new();
 
@@ -51,6 +65,7 @@ namespace Codex
         public static readonly FeatureSwitch<Func<IProjectFileScopeEntity, bool>> AmbientFileAnalysisFilter = new(file => true);
 
         public static readonly FeatureSwitch<Func<IProjectFileScopeEntity, bool>> AmbientFileIndexFilter = new(file => true);
+        public static readonly FeatureSwitch<Func<IProjectScopeEntity, bool>> AmbientProjectIndexFilter = new(file => true);
 
         public static readonly FeatureSwitch<Action<DefinitionSearchModel>> AfterDefinitionAddHandler = new();
 

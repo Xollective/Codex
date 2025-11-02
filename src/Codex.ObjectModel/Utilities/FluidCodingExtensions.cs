@@ -8,6 +8,11 @@ public static class FluidCodingExtensions
         return result;
     }
 
+    public static bool? TrueOrNull(this bool condition)
+    {
+        return condition ? true : null;
+    }
+
     public static bool IsAny<T>(this T value, ReadOnlySpan<T> values)
         where T : unmanaged, Enum
     {

@@ -26,8 +26,21 @@ namespace Codex.Analysis
 
             foreach (var kind in kinds)
             {
-                StringEnum<ClassificationName> classification = kind.ToString();
-                map[(int)kind] = classification.Value ?? default;
+                StringEnum<ClassificationName> toClassificationName()
+                {
+                    switch (kind)
+                    {
+                        // Normalize record type classifications to non-record counterparts
+                        case SymbolDisplayPartKind.RecordClassName:
+                            return ClassificationName.ClassName;
+                        case SymbolDisplayPartKind.RecordStructName:
+                            return ClassificationName.StructName;
+                        default:
+                            return kind.ToString();
+                    }
+                }
+
+                map[(int)kind] = toClassificationName().Value ?? default;
             }
 
             return map;

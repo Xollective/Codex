@@ -123,6 +123,8 @@ jobs:
       shell: pwsh
       working-directory: src/Codex.Web.Wasm
       run: dotnet publish Codex.Web.Wasm.csproj -o "$Env:GITHUB_WORKSPACE/bin/wasm" /bl:"$Env:GITHUB_WORKSPACE/binlogs/publish.wasm.binlog"
+      env:
+        DisableWorkloads: 'false'
 
     - name: Upload Wasm Artifact
       uses: actions/upload-artifact@v4

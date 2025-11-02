@@ -27,13 +27,16 @@ namespace Codex.Utilities
         /// Initializes the <see cref="ArrayBuilder{T}"/> with a specified capacity.
         /// </summary>
         /// <param name="capacity">The capacity of the array to allocate.</param>
-        public ArrayBuilder(int capacity = DefaultCapacity)
+        /// <param name="length">the length or null to use capacity as length</param>
+        public ArrayBuilder(int capacity = DefaultCapacity, int? length = 0)
         {
             Debug.Assert(capacity >= 0);
             if (capacity > 0)
             {
                 _array = new T[capacity];
             }
+
+            _count = length ?? capacity;
         }
 
         public ArrayBuilder(T[] initialArray)
@@ -58,7 +61,7 @@ namespace Codex.Utilities
         /// <summary>
         /// Gets the number of items in the array currently in use.
         /// </summary>
-        public int Length => _count;
+        public int Length { get => _count; set => SetLength(value); }
 
         /// <summary>
         /// Gets or sets the item at a certain index in the array.

@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 namespace Codex.Utilities;
 
 [StructLayout(LayoutKind.Explicit, Size = 3)]
-public struct UInt24 : IAdditionOperators<UInt24, int, UInt24>, IComparable<UInt24>
+public struct UInt24 : IAdditionOperators<UInt24, int, UInt24>, IComparable<UInt24>, IEquatable<UInt24>
 {
     public static UInt24 Zero { get; } = default;
 
@@ -25,6 +25,8 @@ public struct UInt24 : IAdditionOperators<UInt24, int, UInt24>, IComparable<UInt
 
     [FieldOffset(0)]
     private ushort low;
+
+    private int _value => GetValue();
 
     public int GetValue() => To<int>();
 
@@ -107,5 +109,10 @@ public struct UInt24 : IAdditionOperators<UInt24, int, UInt24>, IComparable<UInt
     public int CompareTo(UInt24 other)
     {
         return GetValue().CompareTo(other.GetValue());
+    }
+
+    public bool Equals(UInt24 other)
+    {
+        return this == other;
     }
 }

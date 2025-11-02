@@ -20,11 +20,16 @@ public readonly record struct SnapshotTimeUtc(long Ticks) : IJsonConvertible<Sna
 
     public static SnapshotTimeUtc Parse(string value) => DateTimeOffset.ParseExact(value, Format, null);
 
-    public string ToQuery(string prefix = "")
+    public string ToQuery(string prefix = "?", string? suffix = null)
     {
         if (!IsValid) return "";
+        suffix ??= "&.snap";
+        return $"{prefix}{QueryKey}={ToString()}{suffix}";
+    }
 
-        return $"{prefix}{QueryKey}={ToString()}";
+    public string ToPathSuffix(string? suffix = null)
+    {
+        return PathUtilities.PathSanitizeQuery(ToQuery("&", suffix)).ToString();
     }
 
     public override string ToString()

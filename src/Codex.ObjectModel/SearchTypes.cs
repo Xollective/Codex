@@ -52,24 +52,23 @@ namespace Codex.ObjectModel
 
             .SearchField(s => s.Definition.ProjectId, SearchBehavior.Sortword)
             //.SearchMultiField(s => s.Definition.ConstantValue.SelectOrDefault(cv => cv.GetTriangulationValues(), default), SearchBehavior.Term, nameof(IDefinitionSymbol.ExtendedSearchInfo.ConstantValue))
-            .SearchNamedField(s => s.Definition.ExtensionInfo?.ProjectId, SearchBehavior.PrefixFullName, "ExtensionProjectId")
             .SearchField(s => s.Definition.Id, SearchBehavior.NormalizedKeyword)
             .SearchField(s => s.ExcludeFromDefaultSearch, SearchBehavior.Term)
             .SearchField(s => s.Definition.ContainerTypeSymbolId, SearchBehavior.NormalizedKeyword)
-            .SearchField(s => s.ExtendedSearchInfo.ConstantValue.Value, SearchBehavior.NormalizedKeyword, 
-                nameof(IDefinitionSymbolExtendedSearchInfo.ConstantValue), 
-                isValid: s => s.ExtendedSearchInfo?.ConstantValue != null)
 
-            .SetShouldExclude(s => s.Definition.ExcludeFromSearch)
+            .SetShouldExclude((s, o) => s.Definition.ExcludeFromSearch)
             .SearchField(s => s.Definition.ContainerQualifiedName, SearchBehavior.PrefixFullName)
+            .SearchField(s => s.ExtendedSearchInfo.ConstantValue.Value, SearchBehavior.NormalizedKeyword,
+                isValid: s => s.ExtendedSearchInfo?.ConstantValue != null)
+            .SearchNamedField(s => s.Definition.ExtendedMemberInfo?.ProjectId, SearchBehavior.PrefixFullName, "ExtensionProjectId")
+            .SearchNamedField(s => s.Definition.ExtendedMemberInfo?.ContainerQualifiedName, SearchBehavior.PrefixFullName, "ExtensionContainerQualifiedName")
 
-            .SetShouldExclude(s => s.Definition.ExcludeFromSearch || s.ExtendedSearchInfo != null)
-            .SearchField(s => s.Definition.Kind, SearchBehavior.Sortword, configure: s => s.BehaviorInfo = s.BehaviorInfo with { LowCardinalityTermOptimization = true })
+            .SetShouldExclude((s, o) => s.Definition.ExcludeFromSearch || (s.ExtendedSearchInfo?.ConstantValue != null && o.IsBlockIndex))
+            .SearchField(s => s.Definition.Kind, SearchBehavior.Sortword, configure: s => s.WithFlags(SearchBehaviorFlags.LowCardinalityTermOptimization))
             .SearchField(s => s.Definition.ShortName, SearchBehavior.PrefixShortName)
             .SearchField(s => s.Definition.AbbreviatedName, SearchBehavior.PrefixTerm)
-            .SearchNamedField(s => s.Definition.ExtensionInfo?.ContainerQualifiedName, SearchBehavior.PrefixFullName, "ExtensionContainerQualifiedName")
             .SearchMultiField(s => s.Definition.Modifiers, SearchBehavior.NormalizedKeyword)
-            .SearchMultiField(s => s.Definition.Keywords, SearchBehavior.NormalizedKeyword, configure: s => s.BehaviorInfo = s.BehaviorInfo with { LowCardinalityTermOptimization = true })
+            .SearchMultiField(s => s.Definition.Keywords, SearchBehavior.NormalizedKeyword, configure: s => s.WithFlags(SearchBehaviorFlags.LowCardinalityTermOptimization))
             ;
         //.CopyTo(ds => ds.Definition.Modifiers, ds => ds.Keywords)
         //.CopyTo(ds => ds.Definition.Kind, ds => ds.Kind)
@@ -85,7 +84,8 @@ namespace Codex.ObjectModel
             .Route(rs => rs.Symbol.Id.Value)
             .SearchField(s => s.FileInfo.RepositoryName, SearchBehavior.Sortword)
             .SearchField(s => s.FileInfo.ProjectId, SearchBehavior.Sortword, "ReferencingProjectId")
-            .SearchField(s => s.FileInfo.ProjectRelativePath, SearchBehavior.None)
+            .SearchField(s => s.FileInfo.ProjectRelativePath, SearchBehavior.PrefixFullName)
+            .SearchField(s => s.FileInfo.ProjectRelativePath.Extension, SearchBehavior.NormalizedKeyword)
             .SearchField(s => s.Symbol.ProjectId, SearchBehavior.NormalizedKeyword)
             .SearchField(s => s.Symbol.Id, SearchBehavior.NormalizedKeyword)
             .MarkForRemoval("Do we need a primary reference kind for sorting?")
@@ -106,14 +106,16 @@ namespace Codex.ObjectModel
         public static SearchType<ITextSourceSearchModel> TextSource = SearchType.Create<ITextSourceSearchModel>(RegisteredSearchTypes)
             .WithObjectPath(ObjectPaths.GetPath)
             //.ExternalLink(ITextSourceSearchModel.GetExternalLink)
-            .SearchField(s => s.Chunk.Id, SearchBehavior.Term, "ChunkId")
+            .SearchField(s => s.Chunk.Id, SearchBehavior.Term, "ChunkId", configure: s => s.WithFlags(SearchBehaviorFlags.IsStableIdRef))
+            .SearchField(s => s.Chunk.Index, SearchBehavior.SortValue)
+            .SearchField(s => s.File.RepositoryName, SearchBehavior.Sortword)
+            .SearchField(s => s.File.ProjectId, SearchBehavior.Sortword)
+            .SearchField(s => s.File.ProjectRelativePath, SearchBehavior.PrefixFullName)
+            .SearchField(s => s.File.ProjectRelativePath.Extension, SearchBehavior.NormalizedKeyword)
 
             // Add file location fields with SearchBehavior.None so they are included
             // for index hash, but not actually indexed
-            .SearchField(s => s.Chunk.StartLineNumber, SearchBehavior.None)
-            .SearchField(s => s.File.RepositoryName, SearchBehavior.None)
-            .SearchField(s => s.File.ProjectId, SearchBehavior.None)
-            .SearchField(s => s.File.ProjectRelativePath, SearchBehavior.None)
+            //.SearchField(s => s.File.RepositoryName, SearchBehavior.None)
             ;
         //.CopyTo(ss => ss.File.SourceFile.Content, ss => ss.Content)
         //.CopyTo(ss => ss.File.SourceFile.Info.RepoRelativePath, ss => ss.RepoRelativePath)
@@ -163,7 +165,7 @@ namespace Codex.ObjectModel
             ;
 
         public static SearchType<IPropertySearchModel> Property = SearchType.Create<IPropertySearchModel>(RegisteredSearchTypes)
-            .SearchField(s => s.OwnerId, SearchBehavior.NormalizedKeyword)
+            .SearchField(s => s.OwnerId, SearchBehavior.NormalizedKeyword, configure: s => s.WithFlags(SearchBehaviorFlags.IsStableIdRef))
             .SearchField(s => s.Key, SearchBehavior.NormalizedKeyword)
             .SearchField(s => s.Value, SearchBehavior.NormalizedKeyword)
             

@@ -96,6 +96,13 @@ public record CliModel<T>(Command Command, Func<CliModel<T>, InvocationContext, 
 
     private List<Action<T, InvocationContext>> SetFields { get; } = new();
 
+    public bool HiddenDefault = false;
+
+    public ValueScope<bool> HideOptionsIfNot(bool value)
+    {
+        return new ValueScope<bool>(!value, Out.CreateRef(ref HiddenDefault));
+    }
+
     public void AddHandler(Action<T> handler)
     {
         if (OptionsMode)
@@ -153,7 +160,7 @@ public record CliModel<T>(Command Command, Func<CliModel<T>, InvocationContext, 
         string? description = null,
         bool required = false,
         Optional<TField> defaultValue = default,
-        bool isHidden = false,
+        bool? isHidden = null,
         RefFunc<T, bool>? isExplicitRef = null,
         ParseArgument<TField>? parse = null,
         Func<TField, TField> transform = null,
@@ -186,8 +193,8 @@ public record CliModel<T>(Command Command, Func<CliModel<T>, InvocationContext, 
                 ? new Option<TField>(name, getDefaultValue: () => defaultValue.Value!, description: description)
                 : new Option<TField>(name, description: description);
 
-            option.IsRequired = required;
-            option.IsHidden = isHidden;
+            option.IsHidden = isHidden ?? HiddenDefault;
+            option.IsRequired = required && !option.IsHidden /* Hidden options should never be required */;
             option.AllowMultipleArgumentsPerToken = true;
 
             foreach (var alias in aliases)
@@ -229,7 +236,7 @@ public record CliModel<T>(Command Command, Func<CliModel<T>, InvocationContext, 
         string? description = null,
         ArgumentArity? arity = null,
         Optional<TField> defaultValue = default,
-        bool isHidden = false,
+        bool? isHidden = false,
         RefFunc<T, bool>? isExplicitRef = null,
         ParseArgument<TField>? parse = null)
     {
@@ -252,7 +259,7 @@ public record CliModel<T>(Command Command, Func<CliModel<T>, InvocationContext, 
                 : new Argument<TField>(name, description: description);
 
             option.Arity = arity ?? ArgumentArity.ExactlyOne;
-            option.IsHidden = isHidden;
+            option.IsHidden = isHidden ?? HiddenDefault;
 
             SetFields.Add((model, context) =>
             {

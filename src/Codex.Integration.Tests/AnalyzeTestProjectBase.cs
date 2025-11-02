@@ -35,16 +35,14 @@ public record AnalyzeTestProjectBase(ITestOutputHelper Output) : CodexTestBase(O
         };
 
         public bool ZipEncryptAnalysisOutput = false;
+        public bool AnalyzeProjectFiles = false;
 
-        // Disabling till we fix zip upload / reading to yield results consistent with
-        // file upload. Seems like content is changed somehow.
-        public bool DisableBlockZipUpload = true;
-        public bool UploadFiles = false;
         public int ProjectIndex = 0;
         public ITestProjectData Project => Projects[ProjectIndex];
         public string ProjectDirectory => Project.ProjectDirectory;
         public string ProjectPath => Project.ProjectPath;
 
+        public int LargeFileGeneratedMemberCount { get; set; }
         public int IngestCount { get; set; } = 1;
         public bool SearchOnly { get; set; } = Environment.GetEnvironmentVariable("CodexTest_SearchOnly") == "1";
         public bool CleanIndex { get; set; } = true;
@@ -81,6 +79,8 @@ public record AnalyzeTestProjectBase(ITestOutputHelper Output) : CodexTestBase(O
         });
     }
 
+    public AnalyzeTestProjectOptions DefaultOptions = new AnalyzeTestProjectOptions();
+
     protected virtual void PreconfigureOptions(AnalyzeTestProjectOptions options)
     {
 
@@ -91,7 +91,7 @@ public record AnalyzeTestProjectBase(ITestOutputHelper Output) : CodexTestBase(O
         AsyncOut<AnalyzeTestProjectOptions> optionsOut = null,
         [CallerMemberName] string caller = null)
     {
-        var options = new AnalyzeTestProjectOptions();
+        var options = DefaultOptions with { };
         PreconfigureOptions(options);
         options = configureOptions?.Invoke(options) ?? options;
         optionsOut?.Set(options);
@@ -106,22 +106,39 @@ public record AnalyzeTestProjectBase(ITestOutputHelper Output) : CodexTestBase(O
 
         var args = File.ReadAllLines(Path.Combine(options.ProjectDirectory, "csc.args.txt")).AsEnumerable();
 
+        if (options.LargeFileGeneratedMemberCount > 0)
+        {
+            options.IsAllowedTestFile ??= p => p.EndsWithIgnoreCase("LargeFile.cs");
+        }
+
         bool isAllowedTestFile(string path)
         {
-            return path.ContainsIgnoreCase("TestCases") && (options.IsAllowedTestFile?.Invoke(path) ?? true);
+            return (options.AnalyzeProjectFiles && path.EndsWithIgnoreCase("proj"))
+                || (options.IsAllowedTestFile?.Invoke(path) ?? path.ContainsIgnoreCase("TestCases"));
         }
+
+        using var _ = SdkFeatures.AmbientFileAnalysisFilter.EnableLocal(f => isAllowedTestFile(f.RepoRelativePath));
 
         args = args.Where(a => a.StartsWith('/') || isAllowedTestFile(a));
 
-        if (templateReplacement != null)
+        replaceFileContent("TemplateCode.cs", "Template", templateReplacement);
+        if (options.LargeFileGeneratedMemberCount > 0)
         {
-            var templateCodeFile = args.Where(a => a.ContainsIgnoreCase("TemplateCode.cs")).First();
+            replaceFileContent("LargeFile.cs", "// Members", string.Join("\n", Enumerable.Range(0, options.LargeFileGeneratedMemberCount).Select(i => $"// {i} \nMember{i}")));
+        }
 
-            var templateCode = File.ReadAllText(Path.Combine(options.ProjectDirectory, templateCodeFile));
-            templateCode = templateCode.Replace("Template", templateReplacement);
-            var processedTemplateFilePath = Path.Combine(outputPath, "template.out.cs");
-            File.WriteAllText(processedTemplateFilePath, templateCode);
-            args = args.Concat(new[] { processedTemplateFilePath });
+        void replaceFileContent(string fileName, string oldValue, string replacement)
+        {
+            if (replacement != null)
+            {
+                var templateCodeFile = args.Where(a => a.ContainsIgnoreCase(fileName)).First();
+
+                var templateCode = File.ReadAllText(Path.Combine(options.ProjectDirectory, templateCodeFile));
+                templateCode = templateCode.Replace(oldValue, replacement);
+                var processedTemplateFilePath = Path.Combine(outputPath, $"TestCases.out.{fileName}");
+                File.WriteAllText(processedTemplateFilePath, templateCode);
+                args = args.Concat(new[] { processedTemplateFilePath });
+            }
         }
 
         var argsPath = Path.Combine(outputPath, "csc.args.txt");
@@ -152,8 +169,8 @@ public record AnalyzeTestProjectBase(ITestOutputHelper Output) : CodexTestBase(O
         return analyze;
     }
 
-    protected const string PrimaryProjectRepoName = "testproj/A";
-    protected const string SecondaryProjectRepoName = "testproj/B";
+    protected const string PrimaryProjectRepoName = $"{TestProjects.RepoOrg}/A";
+    protected const string SecondaryProjectRepoName = $"{TestProjects.RepoOrg}/B";
 
     public async Task<IngestOperation> RunAnalyzeTestProject(
         Func<AnalyzeTestProjectOptions, AnalyzeTestProjectOptions> configureOptions = null,

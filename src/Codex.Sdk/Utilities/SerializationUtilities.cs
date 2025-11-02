@@ -10,6 +10,7 @@ using Codex.ObjectModel;
 using Codex.Sdk.Utilities;
 using System.Runtime.InteropServices;
 using CommunityToolkit.HighPerformance;
+using DotNext.IO;
 
 namespace Codex.Utilities
 {
@@ -36,6 +37,22 @@ namespace Codex.Utilities
                 remaining -= read;
                 yield return buffer.AsMemory(0, read);
             }
+        }
+
+        public static StreamSegment AsSegment(this Stream stream, LongExtent? extent = null)
+        {
+            var result = new StreamSegment(stream);
+            return result.Adjust(extent);
+        }
+
+        public static StreamSegment Adjust(this StreamSegment stream, LongExtent? extent)
+        {
+            if (extent.HasValue)
+            {
+                stream.Adjust(extent.Value.Start, extent.Value.Length);
+            }
+
+            return stream;
         }
 
         public static byte[] ReadAllBytes(this Stream stream, bool dispose = true)

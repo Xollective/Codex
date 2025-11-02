@@ -25,6 +25,8 @@ public record struct Optional<T>(T? Value, bool HasValue = true)
         return select(Value);
     }
 
+    public Optional<T>? ValueOrNull() => HasValue ? Value : null;
+
     public static implicit operator Optional<T>((bool hasValue, T value) t) => new(t.value, t.hasValue);
 }
 

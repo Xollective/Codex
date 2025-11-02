@@ -6,13 +6,13 @@ namespace Codex
     /// <summary>
     /// Defines on/off state of experimental features
     /// </summary>
-    public static class Features
+    public class Features
     {
         public static readonly FeatureSwitch<bool> DebugBigSet = false;
         public static readonly FeatureSwitch<bool> IsTest = false;
         public static readonly FeatureSwitch<bool> AllowValidateBlocks = true;
 
-        public static readonly FeatureSwitch<Dbg> DebugScenarios = Dbg.None;
+        public static readonly FeatureSwitch<DbgFlags> DebugScenarios = DbgFlags.None;
 
         public static readonly IFeatureSwitch<bool> ValidateBlocks = new FuncFeatureSwitch<bool>(() => IsTest && AllowValidateBlocks);
 
@@ -50,22 +50,21 @@ namespace Codex
 
         public static readonly FeatureSwitch<bool> TestBoolFeature = true;
 
-        public static ImmutableDictionary<string, IFeatureSwitch<bool>> FeaturesByName { get; }
+        public static ImmutableDictionary<string, IFeatureSwitch<bool>> FeaturesByName { get; protected set; }
 
         public const string FeatureEnvPrefix = "CodexFeature_";
 
-        public static IDisposable EnableWithGlobal<T>(this FeatureSwitch<T> feature, T value)
-            where T : unmanaged, Enum
-        {
-            return feature.EnableGlobal(feature.Value.Or(value));
-        }
-
         static Features()
         {
-            FeaturesByName = GetFeaturesByName();
+            FeaturesByName = GetFeaturesByName<Features>();
         }
 
         public static ImmutableDictionary<string, IFeatureSwitch<bool>> GetFeaturesByName()
+        {
+            return GetFeaturesByName<Features>();
+        }
+
+        protected static ImmutableDictionary<string, IFeatureSwitch<bool>> GetFeaturesByName<T>()
         {
             var builder = ImmutableDictionary.CreateBuilder<string, IFeatureSwitch<bool>>();
             foreach (var field in typeof(Features).GetFields())
@@ -96,6 +95,15 @@ namespace Codex
         T Value { get; }
     }
 
+    public static class FeatureExtensions
+    {
+        public static IDisposable EnableWithGlobal<T>(this FeatureSwitch<T> feature, T value)
+            where T : unmanaged, Enum
+        {
+            return feature.EnableGlobal(feature.Value.Or(value));
+        }
+    }
+
     public class TypeParser
     {
         public static T ParseOrDefault<T>(string s)
@@ -111,10 +119,11 @@ namespace Codex
 
     public class FeatureSwitch<T> : FeatureSwitchBase, IFeatureSwitch<T>
     {
+        private static Func<Optional<bool>> tryGetDefaultValue;
         private T globalValue;
         private AsyncLocal<Optional<T>> localValue = null;
 
-        public T Value => localValue != null && localValue.Value.IsSet ? localValue.Value.Value : globalValue;
+        public T Value => localValue != null && localValue.Value.HasValue ? localValue.Value.Value : globalValue;
 
         public FeatureSwitch(T initialGlobalValue)
             : this()
@@ -165,6 +174,11 @@ namespace Codex
             return new FeatureScope(this, false, new(priorValue));
         }
 
+        public override string ToString()
+        {
+            return Value?.ToString();
+        }
+
         public static implicit operator T(FeatureSwitch<T> f)
         {
             return f.Value;
@@ -180,7 +194,7 @@ namespace Codex
             if (value != null)
             {
                 var parsedValue = TypeHelper<T>.ParseOrDefault(value);
-                if (parsedValue.IsSet)
+                if (parsedValue.HasValue)
                 {
                     globalValue = parsedValue.Value;
                 }
@@ -190,8 +204,6 @@ namespace Codex
 
     public class FeatureSwitchBase
     {
-        protected record struct Optional<T>(T Value, bool IsSet = true);
-
         public virtual void SetStringValue(string value)
         {
         }
@@ -204,7 +216,12 @@ namespace Codex
             {
                 if (typeof(T) == typeof(bool))
                 {
-                    return new Func<string, Optional<bool>>(s => bool.TryParse(s, out var result) ? new(result) : default);
+                    return new Func<string, Optional<bool>>(s =>
+                    {
+                        if (s == "1") return true;
+                        else if (s == "0") return false;
+                        return bool.TryParse(s, out var result) ? new(result) : default;
+                    });
                 }
                 else if (typeof(T) == typeof(string))
                 {

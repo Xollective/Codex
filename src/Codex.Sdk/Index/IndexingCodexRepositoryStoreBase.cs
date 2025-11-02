@@ -65,12 +65,12 @@ namespace Codex.Storage
         {
             foreach (var file in files)
             {
-                using var _ = StoreWriter.EnterRootEntityScope(file);
-
                 if (!SdkFeatures.AmbientFileIndexFilter.Value.Invoke(file.SourceFile.Info))
                 {
                     continue;
                 }
+
+                using var _ = StoreWriter.EnterRootEntityScope(file);
 
                 await AddBoundSourceFileAsync(file);
             }
@@ -85,6 +85,11 @@ namespace Codex.Storage
         {
             foreach (var project in projects)
             {
+                if (!SdkFeatures.AmbientProjectIndexFilter.Value.Invoke(project))
+                {
+                    continue;
+                }
+
                 using var _ = StoreWriter.EnterRootEntityScope(project);
 
                 await AddProjectAsync(project);

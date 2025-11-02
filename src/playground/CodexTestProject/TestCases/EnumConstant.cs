@@ -8,3 +8,8 @@ public enum EnumConstant
     Value2,
 
 }
+
+public enum EnumConstantUInt64 : ulong
+{
+    Max = ulong.MaxValue
+}

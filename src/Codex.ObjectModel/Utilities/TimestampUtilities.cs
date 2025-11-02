@@ -43,7 +43,7 @@ namespace Codex.Sdk
 
     public struct Timestamp(TimeSpan Start)
     {
-        public static readonly Timestamp Instance = Timestamp.New();
+        public static Timestamp Instance => Timestamp.New();
 
         public static Timestamp New() => new(TimestampUtilities.Timestamp);
 

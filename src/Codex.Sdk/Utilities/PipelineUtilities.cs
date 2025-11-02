@@ -2,6 +2,22 @@ namespace Codex.Utilities;
 
 public static class PipelineUtilities
 {
+    public static string SetPipelineVariable(string name, string value, bool isSecret, bool isOutput = false)
+    {
+        return PrintAndReturn(AzureDevOps.GetSetPipelineVariableText(name, value, isSecret, isOutput), print: true);
+    }
+
+    private static string PrintAndReturn(string value, bool print)
+    {
+        if (print) Console.WriteLine(value);
+        return value;
+    }
+
+    public static void TryLogProgressCommand(byte progress, string message = "")
+    {
+        Console.WriteLine($"##vso[task.setprogress value={progress};]{message}");
+    }
+
     public static class AzureDevOps
     {
         public static string GetSetPipelineVariableText(string name, string value, bool isSecret, bool isOutput = false)
@@ -23,12 +39,6 @@ public static class PipelineUtilities
         public static string AddBuildTag(string tag, bool print = true)
         {
             return PrintAndReturn($"##vso[build.addbuildtag]{tag}", print: print);
-        }
-
-        private static string PrintAndReturn(string value, bool print)
-        {
-            if (print) Console.WriteLine(value);
-            return value;
         }
 
         public static string TryGetBuildUrl()

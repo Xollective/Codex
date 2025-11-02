@@ -11,10 +11,11 @@ using Codex.Analysis;
 using Codex.Analysis.Files;
 using Codex.ObjectModel;
 using Codex.Utilities;
+using Codex.Utilities.Serialization;
 
 namespace Codex.Import
 {
-    public class RepoProject : IRepoProject
+    public class RepoProject : IRepoProject, IProjectScopeEntity
     {
         public bool IsInMemory { get; set; }
         public readonly Repo Repo;
@@ -59,6 +60,10 @@ namespace Codex.Import
                 return projectContext;
             }
         }
+
+        string IProjectScopeEntity.ProjectId => ProjectId;
+
+        string IRepoScopeEntity.RepositoryName => Repo.RepositoryName;
 
         public void InitializeProjectContext(AnalyzedProjectInfo project)
         {

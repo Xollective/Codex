@@ -38,9 +38,14 @@ namespace Codex.Utilities
         {
             return TryMoveNext(out _);
         }
+
+        public void Dispose()
+        {
+            Enumerator.Dispose();
+        }
     }
 
-    public interface IIterator<T>
+    public interface IIterator<T> : IDisposable
     {
         bool IsValid { get; }
 

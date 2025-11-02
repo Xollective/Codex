@@ -1,18 +1,46 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
+using Codex.Sdk.Utilities;
 
 namespace Codex
 {
     [GeneratorExclude]
-    public enum Dbg
+    public enum DbgFlags
     {
         None = 0,
         StableBlockIndexing = 1 << 0,
+        Entities = 1 << 1,
+        ConflictingEntities = 1 << 2,
+        Enabled = None
+    }
+
+    public static class Dbg
+    {
+        public struct Values<TContainer, T>
+        {
+            private static object _lock = new();
+            private static T?[] _values = [];
+
+            public static ref T? Get([CallerLineNumber]int index = 0)
+            {
+                if (_values.Length <= index)
+                {
+                    lock(_lock)
+                    {
+                        Array.Resize(ref _values, (int)BitOperations.RoundUpToPowerOf2((uint)index));
+                    }
+                }
+
+                return ref _values[index];
+            }
+        }
     }
 
     /// <summary>
@@ -22,8 +50,14 @@ namespace Codex
     {
         public const bool IsCommitModelEnabled = true;
 
-        public static bool Debug(Dbg d)
+        public static bool Debug(DbgFlags d)
         {
+            if (DbgFlags.Enabled.HasFlag(d))
+            {
+                LaunchDebugger(breakAlways: true);
+                return true;
+            }
+
 #if DEBUG_LOCAL
             if ((Features.DebugScenarios & d) == d)
             {

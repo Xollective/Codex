@@ -13,7 +13,7 @@ namespace Codex.Utilities
 {
     [DataContract]
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct Extent : IComparable<Extent>, IComparable<int>, IValueEnumerable<Extent, uint, int>, IReadOnlyCollection<int>
+    public struct Extent : IComparable<Extent>, IComparable<int>, IValueEnumerable<Extent, uint, int>, IReadOnlyList<int>
     {
         public static IComparer<Extent> StartComparer { get; } = new ComparerBuilder<Extent>()
             .CompareByAfter(e => e.Start);
@@ -33,6 +33,15 @@ namespace Codex.Utilities
         public bool IsEmpty => Length <= 0;
 
         int IReadOnlyCollection<int>.Count => Length;
+
+        int IReadOnlyList<int>.this[int index]
+        {
+            get
+            {
+                CheckBounds(index, Length);
+                return index + Start;
+            }
+        }
 
         public Extent(int start, int length)
         {
@@ -120,6 +129,15 @@ namespace Codex.Utilities
         public Extent Shift(int relativePosition)
         {
             return new(Start + relativePosition, Length);
+        }
+
+        public IEnumerable<Extent> Chunk(int chunkSize)
+        {
+            var end = EndExclusive;
+            for (int i = Start; i < EndExclusive; i += chunkSize)
+            {
+                yield return new(i, Math.Min(chunkSize, end - i));
+            }
         }
 
         public int CompareTo(Extent other)

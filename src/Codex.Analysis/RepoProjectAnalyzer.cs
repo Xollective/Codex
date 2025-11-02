@@ -30,7 +30,14 @@ namespace Codex.Analysis
         public virtual async Task Analyze(RepoProject project)
         {
             var analysisServices = project.Repo.AnalysisServices;
-            analysisServices.Logger.WriteLine($"Analyzing project {project.ProjectId}");
+            var action = analysisServices.GetProjectAction(project);
+
+            analysisServices.Logger.WriteLine($"[{action}] Project {project.ProjectId}");
+            if (action != AnalysisAction.Analyze)
+            {
+                return;
+            }
+
             List<Task> fileTasks = new List<Task>();
 
             foreach (var file in project.Files)

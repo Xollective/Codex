@@ -6,7 +6,7 @@
     <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
     <PackagesOutputPath Condition="'$(PackagesOutputPath)' == ''">$(RepoRoot)/deps/packages</PackagesOutputPath>
     <UserSecretsId>CodexTests-5405dcff-71b8-4108-918a-458206700d15</UserSecretsId>
-    
+    <DebugType>embedded</DebugType>
     <!--<RestoreAdditionalProjectSources>$(PackagesOutputPath)</RestoreAdditionalProjectSources>-->
   </PropertyGroup>
 
@@ -17,7 +17,7 @@
 
   <PropertyGroup Condition="'$(DisableWorkloads)' == ''">
     <!-- By default disable workloads -->
-    <!--<DisableWorkloads>true</DisableWorkloads>-->
+    <DisableWorkloads>true</DisableWorkloads>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(DisableWorkloads)' == 'true'">

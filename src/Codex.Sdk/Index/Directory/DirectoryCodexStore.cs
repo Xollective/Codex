@@ -1,9 +1,12 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Diagnostics.ContractsLight;
+using System.Runtime;
 using System.Runtime.CompilerServices;
 using Codex.Logging;
 using Codex.ObjectModel;
 using Codex.ObjectModel.Implementation;
+using Codex.Sdk;
 using Codex.Sdk.Utilities;
 using Codex.Storage.BlockLevel;
 using Codex.Utilities;
@@ -11,25 +14,32 @@ using Codex.Utilities.Tasks;
 
 namespace Codex.Storage.Store
 {
+    using static Bytes;
+    using static Codex.ObjectModel.Implementation.SearchMappings;
+
     public partial class DirectoryCodexStore : ICodexStore, ICodexRepositoryStore
     {
         private readonly ConcurrentQueue<ValueTask<None>> backgroundTasks = new ConcurrentQueue<ValueTask<None>>();
         private readonly ConcurrentDictionary<string, bool> addedFiles = new ConcurrentDictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
 
         public readonly string DirectoryPath;
+
+        private string TempPath => field ??= Path.Combine(DirectoryPath, ".temp");
         private const string EntityFileExtension = ".cdx.json";
 
         private const long FileSizeByteMax = 20 << 20;
 
         // These two files should contain the same content after finalization
         public const string RepositoryInfoFileName = "repo" + EntityFileExtension;
-        private const string RepositoryInitializationFileName = "initrepo" + EntityFileExtension;
+        public const string RepositoryInitializationFileName = "initrepo" + EntityFileExtension;
 
         public DirectoryRepositoryStoreInfo StoreInfo { get; set; }
 
         public Logger Logger => logger;
         private Logger logger;
         private bool flattenDirectory;
+
+        public bool Incremental { get; set; }
 
         /// <summary>
         /// Disables optimized serialization for use when testing
@@ -133,29 +143,50 @@ namespace Codex.Storage.Store
             return fileSystem;
         }
 
+        void LogMemory(string label)
+        {
+            var info = GC.GetGCMemoryInfo();
+            Process proc = Process.GetCurrentProcess();
+            logger.WriteLine($"""
+            [{label}]
+                Process.WorkingSet:   {proc.WorkingSet64 * MB}
+                Process.PrivateMemory: {proc.PrivateMemorySize64 * MB}
+                GC.GetTotalMemory:    {GC.GetTotalMemory(forceFullCollection: false) * MB}
+                HighMemoryLoadThreshold: {info.HighMemoryLoadThresholdBytes * MB}
+                TotalAvailableMemory:    {info.TotalAvailableMemoryBytes * MB}
+
+            """);
+        }
+
         private async Task ReadCoreAsync(ICodexRepositoryStore repositoryStore, FileSystem fileSystem, bool finalize)
         {
-            int nextIndex = 0;
+            int? ingestGcInterval = SdkFeatures.IngestGcInterval.Value;
             var paralellism = SdkFeatures.IngestParallelism.Value ?? Math.Min(Environment.ProcessorCount, MaxParallelism);
-            foreach (var kind in ReadProjectsOnly
-                ? new[] { StoredEntityKind.Projects }
-                : StoredEntityKind.KindsProjectsFirst)
+            LogMemory("Initial memory stats");
+            var kinds = ReadProjectsOnly
+                ? [StoredEntityKind.Projects]
+                : StoredEntityKind.KindsProjectsFirst;
+
+            var kindsWithFiles = kinds.Select(k => (kind: k, files: fileSystem.GetFiles(k.Name).ToList()));
+            var totalCount = kindsWithFiles.Sum(e => e.files.Count);
+
+            foreach (var (kind, files) in kindsWithFiles)
             {
                 // Each kind is handled separately. Namely, we need all projects to be processed before files
                 // to allow lookup of referenced definitions stored with projects.
                 // NOTE: It is not sufficient to only process a file's project since MSBuild files are a part of
                 // the c# project but contain references to definitions in the MSBuild files project.
-                logger.LogMessage($"Reading {kind} infos");
-
+                int nextIndex = 0;
+                int readFileIndex = 0;
                 var kindDirectoryPath = Path.Combine(DirectoryPath, kind.Name);
-                logger.LogMessage($"Reading {kind} infos from {kindDirectoryPath}");
-                var files = fileSystem.GetFiles(kind.Name).ToList();
                 int count = files.Count;
+                logger.LogMessage($"Reading {count} {kind} infos from {kindDirectoryPath}");
 
                 await TaskUtilities.ForEachAsync(parallel: paralellism, files, async (file, token) =>
                 {
                     var i = Interlocked.Increment(ref nextIndex);
-                    logger.LogMessage($"{i}/{files.Count}: Queuing {kind} info at {file}");
+                    logger.LogMessage($"{i}/{count}: Queuing {kind} info at {file}");
+
                     if (CanReadFilter?.Invoke(file) == false || SdkFeatures.CanReadFilter.Value?.Invoke(file) == false)
                     {
                         logger.LogMessage($"{i}/{count}: Ignoring {kind} info at {file} due to defined filter function.");
@@ -171,6 +202,15 @@ namespace Codex.Storage.Store
 
                             // Ignore files larger than 10 MB
                             return;
+                        }
+
+                        if ((Interlocked.Increment(ref readFileIndex) % ingestGcInterval) == 1)
+                        {
+                            LogMemory($"{i}/{count}: Before GC");
+                            var watch = Timestamp.New();
+                            GCSettings.LargeObjectHeapCompactionMode = GCLargeObjectHeapCompactionMode.CompactOnce;
+                            GC.Collect(GC.MaxGeneration, GCCollectionMode.Forced, blocking: true, compacting: true);
+                            LogMemory($"{i}/{count}: After GC - {watch.Elapsed.TotalSeconds:F2}s");
                         }
                     }
 
@@ -195,6 +235,8 @@ namespace Codex.Storage.Store
                 await repositoryStore.FinalizeAsync();
                 logger.LogMessage($"Finalized.");
             }
+
+            LogMemory("Final memory stats");
         }
 
         public async Task<ICodexRepositoryStore> CreateRepositoryStore(RepositoryStoreInfo storeInfo)
@@ -248,16 +290,13 @@ namespace Codex.Storage.Store
             return this;
         }
 
-        private Task AddAsync<T, TProcessor>(IReadOnlyList<T> entities, StoredEntityKind<T, TProcessor> kind, Func<T, string> pathGenerator)
+        private Task AddAsync<T, TProcessor, TId>(IReadOnlyList<T> entities, StoredEntityKind<T, TProcessor, TId> kind)
         where T : EntityBase
-        where TProcessor : IPostReadProcessor<T>
+        where TProcessor : struct, IPostReadProcessor<T>, IHandler<TId>
         {
             foreach (var entity in entities)
             {
-                var stableId = kind.GetEntityStableId(entity);
-                var pathPart = pathGenerator(entity);
-
-                Write(Path.Combine(kind.Name, $"{pathPart}{stableId}{EntityFileExtension}"), entity, kind);
+                Write(kind.GetPath(this, kind.GetId(entity)), entity, kind);
             }
 
             return Task.CompletedTask;
@@ -268,12 +307,19 @@ namespace Codex.Storage.Store
             if (addedFiles.TryAdd(relativePath, true))
             {
                 var fullPath = Path.Combine(DirectoryPath, relativePath);
+                if (Incremental && File.Exists(fullPath))
+                {
+                    return;
+                }
+
                 long fileSize = 0;
 
                 try
                 {
+                    var tempFullPath = Path.Combine(TempPath, relativePath);
                     Directory.CreateDirectory(Path.GetDirectoryName(fullPath));
-                    using (var streamWriter = new StreamWriter(fullPath))
+                    Directory.CreateDirectory(Path.GetDirectoryName(tempFullPath));
+                    using (var streamWriter = new StreamWriter(tempFullPath))
                     {
                         var stage = DisableOptimization ? ObjectStage.All : ObjectStage.OptimizedStore;
                         entity.SerializeEntityTo(streamWriter.BaseStream, stage: stage, flags: DisableOptimization ? JsonFlags.Indented : default);
@@ -282,6 +328,8 @@ namespace Codex.Storage.Store
                             fileSize = streamWriter.BaseStream.Length;
                         }
                     }
+
+                    File.Move(tempFullPath, fullPath);
                 }
                 catch (Exception ex)
                 {
@@ -308,9 +356,33 @@ namespace Codex.Storage.Store
 
         #region ICodexRepositoryStore Members
 
+        bool ICodexRepositoryStore.IsUpToDate(IProjectFileScopeEntity file)
+        {
+            bool result = Incremental;
+            result &= File.Exists(Out.Var(out var path, StoredEntityKind.BoundFiles.GetPath(this, file, relative: false)));
+            return result;
+        }
+
+        bool ICodexRepositoryStore.IsUpToDate(IProjectScopeEntity project)
+        {
+            bool result = Incremental;
+            result &= File.Exists(Out.Var(out var path, StoredEntityKind.Projects.GetPath(this, project, relative: false)));
+            return result;
+        }
+
+        public Task AddLanguagesAsync(IReadOnlyList<LanguageInfo> languages)
+        {
+            return Placeholder.NotImplementedAsync();
+        }
+
+        public async Task AddProjectsAsync(IReadOnlyList<AnalyzedProjectInfo> projects)
+        {
+            await AddAsync(projects, StoredEntityKind.Projects);
+        }
+
         public Task AddBoundFilesAsync(IReadOnlyList<BoundSourceFile> files)
         {
-            return AddAsync(files.SelectList(CreateStoredBoundFile), StoredEntityKind.BoundFiles, e => Path.Combine(GetProjectFolder(e.BoundSourceFile.ProjectId), Path.GetFileName(e.BoundSourceFile.RepoRelativePath)));
+            return AddAsync(files.SelectList(CreateStoredBoundFile), StoredEntityKind.BoundFiles);
         }
 
         private string GetProjectFolder(string projectId)
@@ -358,16 +430,6 @@ namespace Codex.Storage.Store
             return boundSourceFile;
         }
 
-        public Task AddLanguagesAsync(IReadOnlyList<LanguageInfo> languages)
-        {
-            return Placeholder.NotImplementedAsync();
-        }
-
-        public async Task AddProjectsAsync(IReadOnlyList<AnalyzedProjectInfo> projects)
-        {
-            await AddAsync(projects, StoredEntityKind.Projects, e => GetProjectFolder(e.ProjectId));
-        }
-
         async Task ICodexRepositoryStore.FinalizeAsync()
         {
             // Flush any background operations
@@ -409,24 +471,17 @@ namespace Codex.Storage.Store
 
         #endregion ICodexRepositoryStore Members
 
-        private abstract class StoredEntityKind
+        private abstract record StoredEntityKind
         {
             // NOTE: ANY KINDS ADDED MUST ALSO BE ADDED TO THE Kinds property
-            public static readonly StoredEntityKind<StoredBoundSourceFile, PostReadProcessor> BoundFiles = Create<StoredBoundSourceFile, PostReadProcessor>(
-                (entity) => ToStableId(entity.BoundSourceFile.ProjectId, entity.BoundSourceFile.ProjectRelativePath),
+            public static readonly StoredEntityKind<StoredBoundSourceFile, PostReadProcessor, IProjectFileScopeEntity> BoundFiles = new(
+                (entity) => entity.BoundSourceFile.SourceFile.Info,
                 (entity, repositoryStore, directoryStore) => repositoryStore.AddBoundFilesAsync(new[] { directoryStore.FromStoredBoundFile(entity) }));
-            public static readonly StoredEntityKind<AnalyzedProjectInfo, PostReadProcessor> Projects = Create<AnalyzedProjectInfo, PostReadProcessor>(
-                (entity) => ToStableId(entity.ProjectId),
+            public static readonly StoredEntityKind<AnalyzedProjectInfo, PostReadProcessor, IProjectScopeEntity> Projects = new(
+                (entity) => entity,
                 (entity, repositoryStore, directoryStore) => repositoryStore.AddProjectsAsync(new[] { entity }));
 
-            public static IReadOnlyList<StoredEntityKind> KindsProjectsFirst => new StoredEntityKind[] { Projects, BoundFiles };
-
-            public static StoredEntityKind<T, TProcessor> Create<T, TProcessor>(Func<T, string> getEntityStableId, Func<T, ICodexRepositoryStore, DirectoryCodexStore, Task> add, [CallerMemberName] string name = null)
-                where TProcessor : IPostReadProcessor<T>
-            {
-                var kind = new StoredEntityKind<T, TProcessor>(getEntityStableId, add, name);
-                return kind;
-            }
+            public static IReadOnlyList<StoredEntityKind> KindsProjectsFirst => [Projects, BoundFiles];
 
             public abstract string Name { get; }
 
@@ -438,39 +493,38 @@ namespace Codex.Storage.Store
             }
         }
 
-        private class StoredEntityKind<T, TProccesor> : StoredEntityKind
-            where TProccesor : IPostReadProcessor<T>
+        private record StoredEntityKind<T, TProccesor, TId>(Func<T, TId> GetId, Func<T, ICodexRepositoryStore, DirectoryCodexStore, Task> AddEntity, [CallerMemberName] string Name = null!) : StoredEntityKind
+            where TProccesor : struct, IPostReadProcessor<T>, IHandler<TId>
         {
-            public override string Name { get; }
+            public override string Name { get; } = Name;
 
-            public TProccesor Processor { get; }
-
-            private Func<T, ICodexRepositoryStore, DirectoryCodexStore, Task> add;
-
-            public readonly Func<T, string> GetEntityStableId;
-
-            public StoredEntityKind(Func<T, string> getEntityStableId, Func<T, ICodexRepositoryStore, DirectoryCodexStore, Task> add, string name)
-            {
-                Name = name;
-                this.add = add;
-                GetEntityStableId = getEntityStableId;
-            }
+            public TProccesor Processor { get; } = new();
 
             public override Task Add(DirectoryCodexStore store, FileSystem fileSystem, string fullPath, ICodexRepositoryStore repositoryStore)
             {
                 T entity = Read(store, fileSystem, fullPath);
-                return add(entity, repositoryStore, store);
+                return AddEntity(entity, repositoryStore, store);
             }
 
             public T Read(DirectoryCodexStore store, FileSystem fileSystem, string fullPath)
             {
                 return store.Read<T>(fileSystem, fullPath);
             }
+
+            public string GetPath(DirectoryCodexStore store, TId id, bool relative = true)
+            {
+                var stableId = Processor.GetStableId(id);
+                var pathPart = Processor.GetLogicalRelativePath(store, id);
+
+                return Path.Combine(relative ? "" : store.DirectoryPath, Name, $"{pathPart}{stableId}{EntityFileExtension}");
+            }
         }
 
-        private class PostReadProcessor :
+        private struct PostReadProcessor :
             IPostReadProcessor<StoredBoundSourceFile>,
-            IPostReadProcessor<AnalyzedProjectInfo>
+            IPostReadProcessor<AnalyzedProjectInfo>,
+            IHandler<IProjectFileScopeEntity>,
+            IHandler<IProjectScopeEntity>
         {
             public static void PostProcess(DirectoryCodexStore store, AnalyzedProjectInfo entity)
             {
@@ -487,11 +541,38 @@ namespace Codex.Storage.Store
                     storedBoundFile.BoundSourceFile.RepositoryName = repo.Name;
                 }
             }
+
+            public string GetLogicalRelativePath(DirectoryCodexStore store, IProjectFileScopeEntity entity)
+            {
+                return Path.Combine(store.GetProjectFolder(entity.ProjectId), Path.GetFileName(entity.RepoRelativePath));
+            }
+
+            public string GetLogicalRelativePath(DirectoryCodexStore store, IProjectScopeEntity entity)
+            {
+                return store.GetProjectFolder(entity.ProjectId);
+            }
+
+            public string GetStableId(IProjectFileScopeEntity entity)
+            {
+                return ToStableId(entity.ProjectId, entity.ProjectRelativePath);
+            }
+
+            public string GetStableId(IProjectScopeEntity entity)
+            {
+                return ToStableId(entity.ProjectId);
+            }
+        }
+
+        private interface IHandler<TId>
+        {
+            string GetLogicalRelativePath(DirectoryCodexStore store, TId entity);
+
+            string GetStableId(TId entity);
         }
 
         private interface IPostReadProcessor<T>
         {
-            static abstract void PostProcess(DirectoryCodexStore store, T entity);
+            abstract static void PostProcess(DirectoryCodexStore store, T entity);
         }
     }
 }

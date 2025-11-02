@@ -40,6 +40,9 @@ public record AnalyzeOperation : IndexReadOperationBase
     [Option("clean", HelpText = "Reset target index directory when using -save option.")]
     public bool Clean { get; set; }
 
+    [Option("incremental", HelpText = "Indicates to use incremental mode which allows skipping analysis for analyzed files.")]
+    public bool Incremental { get; set; }
+
     [Option("emitBuildTags", HelpText = "Indicates whether build tags should be emitted.")]
     public bool EmitBuildTags { get; set; }
 
@@ -97,9 +100,6 @@ public record AnalyzeOperation : IndexReadOperationBase
 
     [Option("buildUrl", HelpText = "The URL of the current build.")]
     public string BuildUrl { get; set; }
-
-    [Option("alias", HelpText = "The repo alias for this commit.")]
-    public string RepoAlias { get; set; }
 
     [Option('p', "path", Required = true, HelpText = "Path to the repo to analyze.")]
     public string RootDirectory { get; set; }
@@ -159,6 +159,7 @@ public record AnalyzeOperation : IndexReadOperationBase
                     DisableOptimization = DisableOptimization,
                     QualifierSuffix = ProjectDataSuffix,
                     Format = OutputFormat,
+                    Incremental = Incremental
                 });
             }
         }
@@ -279,7 +280,6 @@ public record AnalyzeOperation : IndexReadOperationBase
             },
             commit: new Commit()
             {
-                Alias = RepoAlias,
                 RepositoryName = RepoName,
                 CommitId = targetIndexName,
                 DateUploaded = DateTime.UtcNow,
@@ -323,7 +323,6 @@ public record AnalyzeOperation : IndexReadOperationBase
         }
 
         RepoName = repoData.Repository.Name;
-        repoData.Commit.Alias = repoData.Commit.Alias?.ReplaceIgnoreCase("{branch}", repoData.Branch.Name ?? "_");
 
         ICodexRepositoryStore analysisTarget = await OutputStore.CreateRepositoryStore(repoData);
 
@@ -428,7 +427,7 @@ public record AnalyzeOperation : IndexReadOperationBase
             {
 
             },
-            new CompilerArgumentsProjectAnalyzer(CompilerArgumentsSearchPaths.ToArray())
+            new CompilerArgumentsProjectAnalyzer(Logger, CompilerArgumentsSearchPaths.ToArray())
             {
                 RequireProjectFilesExist = RequireProjectsExist
             },

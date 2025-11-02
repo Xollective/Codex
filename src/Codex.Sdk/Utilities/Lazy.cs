@@ -9,6 +9,12 @@ public static class Lazy
         return new LazyEx<T>(factory);
     }
 
+    public static DisposeAction<LazyEx<T>> CreateDisposable<T>(Func<T> factory)
+        where T : IDisposable
+    {
+        return DisposeAction.Create(new LazyEx<T>(factory), lazy => { if (lazy.IsValueCreated) lazy.Value.Dispose(); });
+    }
+
     public static LazyList<T> CreateList<T>(Func<IReadOnlyList<T>> factory)
     {
         return new LazyList<T>(Create(factory));

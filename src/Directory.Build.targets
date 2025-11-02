@@ -25,6 +25,47 @@
     <MissingWorkloadPack Remove="@(MissingWorkloadPack)"/>
   </ItemGroup>
 
+    <!--
+    We build Codex.Web.Wasm with .net 8 SDK to get working wasm multithreading.
+    However, in order to get compiler features available with later SDK versions
+    we include the compiler toolset, create an executable csc for the .net 9+ csc.dll.
+    -->
+  <PropertyGroup>
+    <_IsNet8Sdk>false</_IsNet8Sdk>
+    <_IsNet8Sdk Condition=" '$(NETCoreSdkVersion)' != '' and $(NETCoreSdkVersion.StartsWith('8.')) AND '$(NETCoreSdkRuntimeIdentifier)' == 'win-x64'">true</_IsNet8Sdk>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(_IsNet8Sdk)' == 'true'">
+    <UseSharedCompilation>false</UseSharedCompilation>
+    <CscDllPath>$(PkgMicrosoft_Net_Compilers_Toolset)\tasks\netcore\bincore\csc.dll</CscDllPath>
+    <CscToolPath>$([System.IO.Path]::GetFullPath('$(IntermediateOutputPath)\csc'))</CscToolPath>
+    <CscToolExe>dotnet-csc.exe</CscToolExe>
+    <PkgMicrosoft_NETCore_App_Host>$(PkgMicrosoft_NETCore_App_Host_win-x64)</PkgMicrosoft_NETCore_App_Host>
+  </PropertyGroup>
+
+  <!-- Use later compiler from .net sdk 9+ when building with .net 8 sdk since we use some newer compiler features -->
+  <ItemGroup Condition="'$(_IsNet8Sdk)' == 'true'">
+    <PackageReference Include="Microsoft.NETCore.App.Host.win-x64" Version="9.0.9" GeneratePathProperty="true" IncludeAssets="none" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Net.Compilers.Toolset" Version="4.14.0" GeneratePathProperty="true" IncludeAssets="none" PrivateAssets="all" />
+  </ItemGroup>
+
+  
+  <Target Name="GenerateCsc"
+          Condition="'$(_IsNet8Sdk)' == 'true' AND '$(Language)' == 'C#'"
+          BeforeTargets="CoreCompile">
+    <MakeDir Directories="$(CscToolPath)" />
+
+    <CreateAppHost AppHostSourcePath="$(PkgMicrosoft_NETCore_App_Host)\runtimes\$(NETCoreSdkRuntimeIdentifier)\native\apphost.exe"
+                  AppHostDestinationPath="$(CscToolPath)\$(CscToolExe)"
+                  AppBinaryName="$(CscDllPath)"
+                  IntermediateAssembly="$(CscDllPath)"
+                  WindowsGraphicalUserInterface="false"
+                  Retries="$(CopyRetryCount)"
+                  RetryDelayMilliseconds="$(CopyRetryDelayMilliseconds)"
+                  EnableMacOSCodeSign="$(_EnableMacOSCodeSign)"
+                  />
+  </Target>
+
   <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' != 'true'">
     <PackageReference Update="@(PackageVersion)" Version="%(PackageVersion.Version)" />
   </ItemGroup>

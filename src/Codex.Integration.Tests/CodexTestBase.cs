@@ -1,10 +1,12 @@
 using System.Diagnostics;
+using System.Diagnostics.ContractsLight;
 using System.Runtime.CompilerServices;
 using Azure.Storage.Blobs;
 using Codex.Application.Verbs;
 using Codex.Lucene.Search;
 using Codex.Sdk;
 using Codex.Sdk.Search;
+using Codex.Sdk.Utilities;
 using Codex.Search;
 using Codex.Storage;
 using Codex.Utilities;
@@ -13,6 +15,7 @@ using Codex.Web.Common;
 using Codex.Web.Wasm;
 using Microsoft.Extensions.Configuration;
 using Xunit.Abstractions;
+using Xunit.Sdk;
 using static Codex.Lucene.Search.PagingHelpers;
 
 namespace Codex.Integration.Tests;
@@ -22,9 +25,22 @@ public record CodexTestBase : IDisposable
 {
     public static FeatureSwitch<ITestCase?> ActiveTestCase { get; } = new();
 
-    public IConfiguration Secrets { get; protected set; }
+    public static IConfiguration Secrets => field ?? new ConfigurationBuilder()
+            .AddUserSecrets<CodexTestBase>().Build();
 
     public Action<AnalyzeOperation> UpdateAnalyze { get; set; }
+
+    static CodexTestBase()
+    {
+        bool shouldDebug = Environment.GetEnvironmentVariable("DebugTestOnContractFailure") != "0";
+        Contract.ContractFailed += (o, e) =>
+        {
+            if (shouldDebug)
+            {
+                Debugger.Launch();
+            }
+        };
+    }
 
     public const string IndexContainer = "indexcontainer";
 
@@ -36,26 +52,25 @@ public record CodexTestBase : IDisposable
     public string TestQualifier { get; set; } = string.Empty;
 
     public ITestCase? TestCase { get; set; }
+    private DisposalTrackerEx _disposer = new();
 
     public CodexTestBase(ITestOutputHelper output)
     {
         CodexProgramBase.Initialize();
         Output = new TimerOutputHelper(output);
         Logger = new TestLogger(output);
+        _disposer += Logger;
         Console.SetOut(Logger.Writer);
         Console.SetError(Logger.Writer);
-        SdkFeatures.AmbientLogger.EnableLocal(Logger);
-        SdkFeatures.GlobalLogger.EnableGlobal(Logger);
-        SdkFeatures.TestLogger.EnableGlobal(Logger);
+        _disposer += SdkFeatures.AmbientLogger.EnableLocal(Logger);
+        _disposer += SdkFeatures.GlobalLogger.EnableGlobal(Logger);
+        _disposer += SdkFeatures.TestLogger.EnableGlobal(Logger);
 
         Features.IsTest.EnableGlobal(true);
-
-        var builder = new ConfigurationBuilder()
-            .AddUserSecrets<CodexTestBase>();
+        SdkFeatures.TestAssertions.EnableGlobal(TestAssertions.Instance);
 
         TestCase = ActiveTestCase.Value;
         Logger.WriteLine($"Test case started: DisplayName={TestCase?.DisplayName}, Unique={TestCase?.UniqueID}, TestCase='{TestCase}'");
-        Secrets = builder.Build();
         if (MiscUtilities.TryGetEnvironmentVariable("TEST_OUTPUT_ROOT", out var testRoot))
         {
             TestRoot = testRoot;
@@ -93,7 +108,7 @@ public record CodexTestBase : IDisposable
     {
         Logger.Writer.Flush();
 
-        Logger.Dispose();
+        _disposer.Dispose();
     }
 
     public string GetTestOutputDirectory(object args = null, [CallerMemberName] string testName = null, bool clean = false)
@@ -127,6 +142,12 @@ public record CodexTestBase : IDisposable
 
             return testRootDir;
         }
+    }
+
+    public IDisposable TraceEntities()
+    {
+        var d = new DisposalTracker();
+        return d;
     }
 
     public async Task<WebProgramBase> CreateWebProgram(IngestOperation indexOperation, RefAction<WebProgramArguments>? updateArguments = null)

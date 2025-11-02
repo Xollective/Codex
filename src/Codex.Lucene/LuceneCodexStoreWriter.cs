@@ -69,7 +69,9 @@ namespace Codex.Lucene.Search
                 WriteDebugObject(searchType, entity, instance.Stream);
             }
 
-            var visitor = new DocumentVisitor(doc);
+            var visitor = new DocumentVisitor(doc)
+            {
+            };
             searchType.VisitFields(entity, visitor);
 
             Writers[searchType].AddDocument(doc);

@@ -96,7 +96,7 @@ namespace Codex.View
 
         private string GetFileTitle(IProjectFileScopeEntity sourceFile)
         {
-            if (sourceFile?.ProjectRelativePath is string projectRelativePath)
+            if (sourceFile?.ProjectRelativePath is { } projectRelativePath)
             {
                 return $"{PathUtilities.GetFileName(projectRelativePath)} ({sourceFile.ProjectId})";
             }

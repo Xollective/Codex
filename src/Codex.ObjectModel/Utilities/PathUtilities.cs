@@ -1,4 +1,6 @@
+using System;
 using System.Diagnostics;
+using System.IO;
 using System.Net;
 using Codex.Sdk;
 
@@ -14,6 +16,28 @@ namespace Codex.Utilities
         public const string AppendSuffix = "###append";
 
         public static readonly ReadOnlyMemory<char> InvalidFileNameChars = Path.GetInvalidFileNameChars();
+
+        public static ReadOnlySpan<char> PathSanitizeQuery(ReadOnlySpan<char> query)
+        {
+            var invalidChars = InvalidFileNameChars.Span;
+            Span<char> result = stackalloc char[query.Length];
+            Span<char> chars = result;
+            query.CopyTo(chars);
+            int index = 0;
+            while ((index = chars.IndexOfAny(invalidChars)) >= 0)
+            {
+                ref var ch = ref chars[index];
+                ch = ch == '?' ? '&' : '_';
+                chars = chars.Slice(index + 1);
+            }
+
+            if (result.Length == chars.Length)
+            {
+                return query;
+            }
+
+            return result.ToString();
+        }
 
         public static bool ToUriOrPath(string pathOrUri, out Uri uri, out string path, string parentPath = "")
         {
@@ -84,9 +108,19 @@ namespace Codex.Utilities
             return new Uri(uri.UriString.AsSpan().SubstringBeforeFirstIndexOfAny("?").ToString());
         }
 
+        public static string RemoveQueryString(Url uri)
+        {
+            return uri.UriString.FluidSelect(s => !s.Contains("?") ? s : s.AsSpan().SubstringBeforeFirstIndexOfAny("?").ToString());
+        }
+
         public static Uri WithoutQuery(this Uri uri)
         {
             return RemoveQuery(uri);
+        }
+
+        public static string WithoutQueryString(this Uri uri)
+        {
+            return RemoveQueryString(uri);
         }
 
         public static string NormalizePath(string path, char? directorySeparator = null)
@@ -225,6 +259,12 @@ namespace Codex.Utilities
 
         public static string GetExtension(string path)
         {
+            var index = path.AsSpan().LastIndexOfAny('\\', '/');
+            if (index < 0)
+            {
+                index = 0;
+            }
+
             for (int i = path.Length - 1; i >= 0; i--)
             {
                 if (path[i] == '\\')
