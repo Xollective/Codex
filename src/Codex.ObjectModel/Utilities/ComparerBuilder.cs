@@ -8,11 +8,20 @@ namespace Codex.Utilities
     {
     }
 
+    public static class ComparerBuilder
+    {
+        public static ComparerBuilder<T> New<T>() => new ComparerBuilder<T>();
+
+        public static ComparerBuilder<T> Default<T>() => new ComparerBuilder<T>().CompareByAfter(i => i);
+    }
+
     /// <summary>
     /// Chains compares to perform comparison operations.
     /// </summary>
     public class ComparerBuilder<T> : Comparer<T>, IUnifiedComparer<T>
     {
+        public static new ComparerBuilder<T> Default => new ComparerBuilder<T>().CompareByAfter(i => i);
+
         private LinkedList<IComparer<T>> comparers = new LinkedList<IComparer<T>>();
         private EqualityComparerBuilder<T> _equalityComparer = new EqualityComparerBuilder<T>();
 

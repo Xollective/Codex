@@ -15,7 +15,7 @@ namespace Codex.Automation.Workflow
         Codex = 1 << 22,
         Test = 1 << 23,
 
-        Analyze = Prepare | AnalyzeOnly,
+        Analyze = Prepare | AnalyzeOnly | UploadOnly,
         Upload = Prepare | UploadOnly,
         Build = Prepare | BuildOnly,
         Index = Prepare | IndexOnly,

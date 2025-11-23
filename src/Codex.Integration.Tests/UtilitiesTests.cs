@@ -11,9 +11,9 @@ using Codex.ObjectModel.CompilerServices;
 using Codex.ObjectModel.Implementation;
 using Codex.Search;
 using Codex.Storage;
+using Codex.Storage.BlockLevel;
 using Codex.Utilities;
 using CommunityToolkit.HighPerformance;
-using DotNext;
 using DotNext.Threading.Tasks;
 using ICSharpCode.SharpZipLib.Zip;
 using K4os.Compression.LZ4;
@@ -620,6 +620,28 @@ public partial record UtilitiesTests(ITestOutputHelper output) : CodexTestBase(o
         }
 
         chunkCount.Should().BeGreaterThan(3);
+    }
+
+    [Fact]
+    public void SymbolMappingTests()
+    {
+        int baseCount = 2000;
+        int nextCount = 2150;
+
+        var getMap = Out.ArgFunc((int symbolCount) =>
+        {
+            return SymbolMapping.PopulateSymbolMap(
+                Enumerable.Range(0, symbolCount).Select(i => $"SYMBOL:{i}"),
+                ComparerBuilder.Default<string>(),
+                i => IndexingUtilities.UnicodeHash(i));
+        });
+
+
+        var baseMap = getMap(baseCount);
+        var nextMap = getMap(nextCount);
+        var changes = baseMap.Except(nextMap);
+        Output.WriteLine($"Changes [Count={changes.Count()}]:");
+        Output.WriteLine(changes.Select(KeyValueEntry.ToEntry).LineJoin());
     }
 
     [Fact]

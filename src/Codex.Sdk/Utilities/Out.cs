@@ -57,6 +57,8 @@ namespace Codex.Utilities
     {
         public static bool NotNull(object o) => o != null;
 
+        public static ReadOnlySpan<T> ReadOnlySpan<T>(ReadOnlySpan<T> s) => s;
+
         public static Span<T> Span<T>(Span<T> span)
         {
             return span;
@@ -83,6 +85,10 @@ namespace Codex.Utilities
         }
 
         public static Action<T> Action<T>(Action<T> action) => action;
+
+        public static Func<T> Func<T>(Func<T> action) => action;
+
+        public static Func<T, TResult> ArgFunc<T, TResult>(Func<T, TResult> action) => action;
 
         public static Ref<T> CreateRef<T>(ref T value) => new Ref<T>(ref value);
 

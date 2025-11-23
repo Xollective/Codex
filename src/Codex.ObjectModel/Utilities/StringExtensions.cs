@@ -15,6 +15,16 @@ namespace Codex.Utilities
         {
             return string.Join(separator, values.WhereNotNullOrEmpty());
         }
+
+        public static string Join(this IEnumerable<string> strings, string separator = "")
+        {
+            return string.Join(separator, strings);
+        }
+
+        public static string LineJoin<T>(this IEnumerable<T> strings, string separator = "\n")
+        {
+            return string.Join(separator, strings);
+        }
     }
 
     public ref struct SpanMatch(ReadOnlySpan<char> text, ValueMatch match, bool success = true)
@@ -30,11 +40,6 @@ namespace Codex.Utilities
 
     public static class StringExtensions
     {
-        public static string StringJoin(this IEnumerable<string> strings, string separator = "")
-        {
-            return string.Join(separator, strings);
-        }
-
         public static SpanMatch Match(this Regex r, ReadOnlySpan<char> input)
         {
             foreach (var match in r.EnumerateMatches(input))

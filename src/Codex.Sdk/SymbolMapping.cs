@@ -8,11 +8,12 @@ public static class SymbolMapping
 {
     const int HASH_COUNT = 8;
 
-    public static readonly FeatureSwitch<bool> PopulateSymbolMapDiffMode = true;
     public static readonly FeatureSwitch<int> MinSymbolMapMaxValue = 1 << 7;
 
     public record struct HashRingEntry(ulong Hash, int Index, bool IsSymbol) : IComparable<HashRingEntry>
     {
+        public double Angle => (Hash * 360.0) / ulong.MaxValue;
+
         public int CompareTo(HashRingEntry other)
         {
             return Hash.ChainCompareTo(other.Hash)
@@ -23,18 +24,21 @@ public static class SymbolMapping
 
     public record struct HashRingDiffEntry(ulong Diff, int Index, int SymbolIndex) : IComparable<HashRingDiffEntry>
     {
+        public double Angle => (Diff * 360.0) / ulong.MaxValue;
+
+        public ulong DiffFraction => ulong.MaxValue / Diff;
+
         public int CompareTo(HashRingDiffEntry other)
         {
             return
-                default(int?)
-                ?? Diff.ChainCompareTo(other.Diff)
+                Diff.ChainCompareTo(other.Diff)
                 ?? Index.ChainCompareTo(other.Index)
                 ?? SymbolIndex.ChainCompareTo(other.SymbolIndex)
                 ?? 0;
         }
     }
 
-    public static ulong[] HASH_SEEDS = Enumerable.Range(0, HASH_COUNT).Select(i => Murmur3.ComputeBytesHash<int>(stackalloc[] { i }).Low).ToArray();
+    public static ulong[] HASH_SEEDS = Enumerable.Range(0, HASH_COUNT).Select(i => Murmur3.ComputeBytesHash<int>([i]).Low).ToArray();
 
     public static IImmutableDictionary<TSymbol, int> PopulateSymbolMap<TSymbol>(
         IEnumerable<TSymbol> symbols,
@@ -59,15 +63,17 @@ public static class SymbolMapping
         var mappedSymbols = new TSymbol[Math.Max(MinSymbolMapMaxValue, symbolMap.Count * 4)];
         symbolIndexMap?.Set(mappedSymbols);
 
-        Span<ulong> hashInputSpan = stackalloc ulong[3] { 0, 0, 0 };
+        Span<ulong> hashInputSpan = [0, 0, 0];
 
         List<HashRingEntry> entries = new List<HashRingEntry>();
 
+        // NOTE: We skip index = 0, is this relevant?
         for (int index = 1; index < mappedSymbols.Length; index++)
         {
             hashInputSpan[0] = (ulong)index;
             hashInputSpan[1] = 0;
 
+            //var seed = HASH_SEEDS[0];
             foreach (var seed in HASH_SEEDS)
             {
                 hashInputSpan[2] = seed;
@@ -94,80 +100,76 @@ public static class SymbolMapping
 
         entries.Sort();
 
-        HashRingEntry? lastIndexEntry = null;
-        if (PopulateSymbolMapDiffMode)
-        {
-            int assignmentCount = 0;
-            var diffEntries = new List<HashRingDiffEntry>(entries.Count);
-            int remainingIterations = 5;
+        SpanRingBuffer<HashRingEntry> lastIndexEntries = new(stackalloc HashRingEntry[2]);
+        int assignmentCount = 0;
+        var diffEntries = new List<HashRingDiffEntry>(entries.Count);
+        var selectedDiffEntries = new List<HashRingDiffEntry>(symbolsArray.Length);
+        int remainingIterations = 5;
+        bool isFirstIteration = true;
 
-            while (assignmentCount < symbolsArray.Length && remainingIterations-- > 0)
+        while (assignmentCount < symbolsArray.Length && remainingIterations-- > 0)
+        {
+            diffEntries.Clear();
+            selectedDiffEntries.Clear();
+
+            foreach (var reverse in Out.Span([false]))
             {
-                diffEntries.Clear();
-                foreach (var entry in entries)
+                lastIndexEntries.Clear();
+                int index = reverse ? entries.Count - 1 : 0;
+                int increment = reverse ? -1 : 1;
+                while ((uint)index < (uint)entries.Count)
                 {
+                    var entry = entries[index];
+                    index += increment;
                     if (!entry.IsSymbol)
                     {
-                        if (isDefault(mappedSymbols[entry.Index]))
+                        if (isFirstIteration || isDefault(mappedSymbols[entry.Index]))
                         {
-                            lastIndexEntry = entry;
+                            lastIndexEntries.Push(entry);
                         }
                     }
-                    else if (lastIndexEntry is { } indexEntry)
+                    else if (isFirstIteration || !isDefault(symbolsArray[entry.Index]))
                     {
-                        diffEntries.Add(new(Diff: entry.Hash - indexEntry.Hash, indexEntry.Index, SymbolIndex: entry.Index));
-                    }
-                }
-
-                diffEntries.Sort();
-
-                foreach (var entry in diffEntries)
-                {
-                    var index = entry.Index;
-                    ref var symbol = ref symbolsArray[entry.SymbolIndex];
-                    ref var mappedSymbol = ref mappedSymbols[index];
-                    if (!isDefault(symbol) && isDefault(mappedSymbol))
-                    {
-                        mappedSymbol = symbol;
-                        symbolMap[symbol] = index;
-
-                        // Prevent reassignment of symbol
-                        symbol = default;
-                        assignmentCount++;
-                        if (assignmentCount == symbolsArray.Length) break;
+                        for (int i = 0; i < lastIndexEntries.Count; i++)
+                        {
+                            var indexEntry = lastIndexEntries[i];
+                            var diff = reverse
+                                ? indexEntry.Hash - entry.Hash
+                                : entry.Hash - indexEntry.Hash;
+                            var diffEntry = new HashRingDiffEntry(Diff: diff, indexEntry.Index, SymbolIndex: entry.Index);
+                            diffEntries.Add(diffEntry);
+                        }
                     }
                 }
             }
 
-            Contract.Assert(assignmentCount == symbolsArray.Length);
-        }
-        else
-        {
-            bool isIndexAvailable = true;
-            foreach (var entry in entries)
+            isFirstIteration = false;
+
+            diffEntries.Sort();
+            int j = -1;
+
+            foreach (var entry in diffEntries)
             {
-                if (!entry.IsSymbol)
-                {
-                    lastIndexEntry = entry;
-                    isIndexAvailable = mappedSymbols[entry.Index] == null;
-                }
-                else if (lastIndexEntry != null && isIndexAvailable)
-                {
-                    var index = lastIndexEntry.Value.Index;
-                    ref var symbol = ref symbolsArray[entry.Index];
-                    ref var mappedSymbol = ref mappedSymbols[index];
-                    if (!isDefault(symbol) && isDefault(mappedSymbol))
-                    {
-                        mappedSymbol = symbol;
-                        isIndexAvailable = false;
-                        symbolMap[symbol] = index;
+                j++;
+                var index = entry.Index;
+                ref var symbol = ref symbolsArray[entry.SymbolIndex];
+                ref var mappedSymbol = ref mappedSymbols[index];
 
-                        // Prevent reassignment of symbol
-                        symbol = default;
-                    }
+                if (!isDefault(symbol) && isDefault(mappedSymbol))
+                {
+                    mappedSymbol = symbol;
+                    symbolMap[symbol] = index;
+
+                    // Prevent reassignment of symbol
+                    symbol = default;
+                    assignmentCount++;
+                    selectedDiffEntries.Add(entry);
+                    if (assignmentCount == symbolsArray.Length) break;
                 }
             }
         }
+
+        Contract.Assert(assignmentCount == symbolsArray.Length);
 
         return symbolMap.ToImmutable();
     }

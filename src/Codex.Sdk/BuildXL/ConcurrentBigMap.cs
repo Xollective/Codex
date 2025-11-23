@@ -12,17 +12,6 @@ using System.Linq;
 
 namespace BuildXL.Utilities.Collections
 {
-    public struct KeyValueEntry<TKey, TValue>(TKey key, TValue value)
-    {
-        public readonly TKey Key = key;
-        public TValue Value = value;
-
-        public static implicit operator KeyValuePair<TKey, TValue>(KeyValueEntry<TKey, TValue> e) => new(e.Key, e.Value);
-        public static implicit operator KeyValueEntry<TKey, TValue>(KeyValuePair<TKey, TValue> e) => new(e.Key, e.Value);
-
-        public KeyValuePair<TKey, TValue> ToPair() => this;
-    }
-
     /// <summary>
     /// Wraps a concurrent big set as a map
     /// </summary>

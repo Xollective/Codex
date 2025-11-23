@@ -38,21 +38,13 @@ namespace Codex.Lucene.Formats
 
         public static readonly RoaringDocIdSet Empty = new Builder().Build();
 
-        private enum DocIdSetType : byte
-        {
-            NONE,
-            SHORT_ARRAY,
-            BIT
-        }
-
         private enum PersistedDocIdSetType : byte
         {
             NONE,
             SHORT_ARRAY,
+            INVERTED_SHORT_ARRAY,
             BIT,
-            BIT_WITH_SUMMARY,
             RANGE_ARRAY,
-
         }
 
         private readonly DocIdSet[] docIdSets;
@@ -184,11 +176,10 @@ namespace Codex.Lucene.Formats
             {
                 var header = GetHeader(bytes.Slice(0, 3).Span);
                 var dataBytes = bytes.Slice(3);
-                if (header.Type == PersistedDocIdSetType.SHORT_ARRAY)
+                if (header.Type == PersistedDocIdSetType.SHORT_ARRAY || header.Type == PersistedDocIdSetType.INVERTED_SHORT_ARRAY)
                 {
                     var docIds = dataBytes.Cast<byte, ushort>();
-                    bool invert = header.ShortSetCardinality <= 0;
-                    var set = new ShortArrayDocIdSet(docIds, invert);
+                    var set = new ShortArrayDocIdSet(docIds, invert: header.Type == PersistedDocIdSetType.INVERTED_SHORT_ARRAY);
                     docIdSets[index] = set;
                 }
                 else if (header.Type == PersistedDocIdSetType.RANGE_ARRAY)
@@ -227,7 +218,9 @@ namespace Codex.Lucene.Formats
                 }
                 else if (entry.Item is ShortArrayDocIdSet shortSet)
                 {
-                    header.Type = PersistedDocIdSetType.SHORT_ARRAY;
+                    header.Type = shortSet.Invert
+                        ? PersistedDocIdSetType.INVERTED_SHORT_ARRAY
+                        : PersistedDocIdSetType.SHORT_ARRAY;
                     var cardinality = shortSet.DocIDs.Length;
                     header.ShortSetCardinality = (short)(shortSet.Invert ? -cardinality : cardinality);
                     dataBytes = MemoryMarshal.Cast<ushort, byte>(shortSet.DocIDs.Span);
